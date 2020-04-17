@@ -29,9 +29,9 @@ def add_clade(clades, df):
     '''
     with open(clades) as jfile:
         clades_dict = json.load(jfile)
-    for strain in df.index:
+    for strain, row in df.iterrows():
         if strain in clades_dict.keys():
-            df[strain, 'clade'] = clades_dict[strain]['clade']
+            df.loc[strain, 'clade'] = clades_dict[strain]['clade']
     return df
 
 
