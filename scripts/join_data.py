@@ -4,6 +4,7 @@ Inputs are:
 --clades (json)
 --data (list of tsv files
 --source, source tsv is from
+--metadata
 --output
 '''
 
@@ -34,6 +35,14 @@ def add_clade(clades, df):
             df.loc[strain, 'clade'] = clades_dict[strain]['clade']
     return df
 
+def add_metadata(df, metadata):
+    '''
+    Adds metadata from ncov build to df.
+    '''
+    meta = pd.read_csv(metadata, sep = '\t')
+    df = df.merge(meta[['strain', 'date', 'division']], how = 'left', left_index = True, right_on = 'strain', validate = "1:1")
+    df = df.set_index('strain')
+    return df
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -45,6 +54,7 @@ if __name__ == '__main__':
     parser.add_argument('--data', type=str, nargs='+', required=True, help='TSV metadata for UW sequences')
     parser.add_argument('--source', type=str, nargs='+', required=True, help='Source of metadata')
     parser.add_argument('--output', type=str, required=True, help = 'location of output json')
+    parser.add_argument('--metadata', type=str, required=True, help = 'Metadata from ncov build')
     args = parser.parse_args()
 
 # Combines metadata into one dataframe
@@ -53,5 +63,8 @@ data = make_df(args.data, args.source)
 # Adds clades to df
 combined = add_clade(args.clades, data)
 
+# Adds metadata from ncov build to df
+combined_meta = add_metadata(combined, args.metadata)
+
 # Write df to tsv
-combined.to_csv(args.output, sep = '\t')
+combined_meta.to_csv(args.output, sep = '\t')
