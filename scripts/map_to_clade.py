@@ -44,7 +44,7 @@ elif args.type == 'json':
     for record in SeqIO.parse(args.alignment, 'fasta'):
         mapping[record.id] = {}
         if record[23402] == 'A':
-            mapping[record.id]['clade'] = 'S'
+            mapping[record.id]['clade'] = 'D'
         elif record[23402] == 'G':
             mapping[record.id]['clade'] = 'G'
         else:
