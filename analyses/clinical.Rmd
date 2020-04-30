@@ -6,6 +6,8 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
+knitr::opts_chunk$set(dev="CairoPNG")
+options(bitmapType = 'cairo')
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 ```
@@ -86,7 +88,7 @@ summary(df)
 
 #### How are the clades spread over time?
 ```{r, echo=FALSE}
-ggplot(df, aes(x=collection_date, color=clade, fill=clade)) + 
+clade_time <- ggplot(df, aes(x=collection_date, color=clade, fill=clade)) + 
   geom_bar(position = position_stack()) + 
   scale_fill_manual(values=c('#4C90C0', '#AEBD50')) +
   scale_color_manual(values=c('#4C90C0', '#AEBD50')) +
@@ -94,6 +96,10 @@ ggplot(df, aes(x=collection_date, color=clade, fill=clade)) +
   theme(text = element_text(family = "NimbusSan", size = 10)) +
   ylab("Count") +
   xlab("Date")
+clade_time
+png("../figures/clade-by-date_clinical.png")
+clade_time
+dev.off()
 ```
 
 #### Is their a difference in sex by clade?
@@ -112,11 +118,38 @@ chisq.test(df$immunocompromised_cancer, df$clade)
 ```{r}
 t.test(df$age ~ df$clade)
 wilcox.test(formula = age ~ clade, data= df, alternative = "two.sided")
+age <- ggplot(df, mapping = aes(x=clade, y=age_bin, color=clade, fill=clade)) + 
+  geom_dotplot(binaxis="y", stackdir="center", binwidth=0.17, position = position_jitter(width = 0, height=0.3)) + 
+  scale_color_manual(values=c('#4C90C0', '#AEBD50')) +
+  scale_fill_manual(values=c('#4C90C0', '#AEBD50')) +
+  theme_minimal() +
+  theme(text = element_text(family = "NimbusSan", size = 10)) +
+  ylab("Age") +
+  xlab("Clade") +
+  labs(subtitle = "Samples with charts in UW Medicine system")
+age
+png("../figures/age-clade_clinical.png")
+age
+dev.off()
 ```
 #### Is there a difference in Ct across clade?
 ```{r}
 t.test(df$avg_ct ~ df$clade)
 wilcox.test(formula = avg_ct ~ clade, data= df, alternative = "two.sided")
+ct <- ggplot(df, aes(x=clade, y=avg_ct), na.rm=TRUE) + 
+  geom_violin(alpha=0.7, aes(color=clade, fill=clade)) + 
+  scale_fill_manual(values=c('#4C90C0', '#AEBD50')) +
+  scale_color_manual(values=c('#4C90C0', '#AEBD50')) +
+  stat_summary(fun.data="mean_sdl", geom="pointrange") +
+  theme_minimal() +
+  theme(text = element_text(family = "NimbusSan", size = 10)) +
+  ylab("Average Ct") +
+  xlab("Clade") +
+  labs(subtitle = "Samples with charts in UW Medicine system")
+ct
+png("../figures/ct-clade_clinical.png")
+ct
+dev.off()
 ```
 #### Is there a difference in proportion of deceased across clade?
 ```{r}
