@@ -1,0 +1,145 @@
+---
+title: 'ncov-severity: clinical'
+author: "Cassia Wagner"
+date: "4/29/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+#### Load dataframes
+```{r, results='hide'}
+df_clade <- read_tsv(file = 'results/df_2020-04-21_UW.tsv')
+df_clinical <- read_tsv(file = 'data/20200421_UW_chartreview.tsv')
+```
+
+#### Examining df_clade:
+- Are any of the samples not in Washington?
+```{r}
+summarise(df_clade, n())
+filter(df_clade, division == 'Washington') %>% summarise(n())
+```
+
+- Are collection_date & date the same?
+```{r}
+df_clade %>% 
+  mutate(compare_dates = if_else(collection_date == date, 1, 0)) %>%
+  tally()
+```
+
+- Are there any missing values?
+```{r}
+sum(is.na(df_clade))
+sum(is.na(df_clade$clade))
+df_clade$strain[is.na(df_clade$clade)] 
+```
+
+Note: "USA/WA-UW230/2020" is in `ncov/config/exclude.txt` because more tip divergence than expected.
+```{r}
+df_clade <- drop_na(df_clade)
+```
+
+#### When I merge df_clade & df_clinical together, what rows will not merge?
+```{r}
+anti_join(df_clade, df_clinical, by = c("strain", "collection_date", "age_bin"))
+anti_join(df_clinical, df_clade, by = c("strain", "collection_date", "age_bin"))
+```
+
+Note: "USA/WA-UW375/2020" and "USA/WA-UW-1697/2020" removed because there was already an identical sequence from each of these patients. 
+
+#### Merging clinical and clade data
+```{r}
+df <- df_clade %>%
+  select(-date, -source, -division) %>%
+  inner_join(df_clinical, by = c("strain", "collection_date", "age_bin"))
+```
+
+#### Variable prep
+```{r, results='hide'}
+df$age_bin = factor(df$age_bin, levels = c("11-20", "21-30", "31-40", "41-50", "51-60", "61-70", "71-80", "81-90", "over 90"), ordered = TRUE)
+df$clade = factor(df$clade, levels = c("D", "G"))
+df$sex = factor(df$sex)
+df$deceased = factor(df$deceased, levels = c("yes", "no"))
+df$site = factor(df$site)
+df$critical_care = factor(df$critical_care, levels = c("yes", "no"))
+df$immunocompromised_cancer = factor(df$immunocompromised_cancer, levels = c("yes", "no"))
+
+
+df$age[df$age_bin == '11-20'] = 15.5
+df$age[df$age_bin == '21-30'] = 25.5
+df$age[df$age_bin == '31-40'] = 35.5
+df$age[df$age_bin == '41-50'] = 45.5
+df$age[df$age_bin == '51-60'] = 55.5
+df$age[df$age_bin == '61-70'] = 65.5
+df$age[df$age_bin == '71-80'] = 75.5
+df$age[df$age_bin == '81-90'] = 85.5
+df$age[df$age_bin == 'over 90'] = 91 #Better to be conservative
+```
+
+#### Data summary
+```{r}
+summary(df)
+```
+
+#### How are the clades spread over time?
+```{r, echo=FALSE}
+ggplot(df, aes(x=collection_date, color=clade, fill=clade)) + 
+  geom_bar(position = position_stack()) + 
+  scale_fill_manual(values=c('#4C90C0', '#AEBD50')) +
+  scale_color_manual(values=c('#4C90C0', '#AEBD50')) +
+  theme_minimal() +
+  theme(text = element_text(family = "NimbusSan", size = 10)) +
+  ylab("Count") +
+  xlab("Date")
+```
+
+#### Is their a difference in sex by clade?
+```{r, echo=FALSE}
+table(df$sex, df$clade)
+chisq.test(df$sex, df$clade)
+```
+
+#### Is there a difference in immunocompromised/cancer by clade?
+```{r, echo=FALSE}
+table(df$immunocompromised_cancer, df$clade)
+chisq.test(df$immunocompromised_cancer, df$clade)
+```
+
+#### Is there a difference in age across clade?
+```{r}
+t.test(df$age ~ df$clade)
+wilcox.test(formula = age ~ clade, data= df, alternative = "two.sided")
+```
+#### Is there a difference in Ct across clade?
+```{r}
+t.test(df$avg_ct ~ df$clade)
+wilcox.test(formula = avg_ct ~ clade, data= df, alternative = "two.sided")
+```
+#### Is there a difference in proportion of deceased across clade?
+```{r}
+table(df$deceased, df$clade)
+chisq.test(df$deceased, df$clade)
+```
+
+#### Is there a difference in critical care across clade?
+```{r}
+table(df$critical_care, df$clade)
+fisher.test(df$critical_care, df$clade)
+```
+
+#### Is there a difference in inpatient vs. outpatient across clade?
+```{r}
+table(df$site, df$clade)
+chisq.test(df$site, df$clade)
+```
+
+### Let severe represent either death or critical care, is there a difference in severe across clade?
+```{r}
+df <- mutate(df, severe = ifelse(deceased == "yes" | critical_care == "yes", "yes", "no"))
+
+table(df$severe, df$clade)
+chisq.test(df$severe, df$clade)
+```
