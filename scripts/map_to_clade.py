@@ -34,7 +34,7 @@ if args.type == 'tsv':
         else:
             df = df.append({'strain' : record.id, 'clade' : 'other'}, ignore_index=True)
 
-    #Saves mapping as JSON
+    #Saves mapping as TSV
     with open(args.output, 'w') as f:
         df.to_csv(f, sep = '\t', index=False)
 
