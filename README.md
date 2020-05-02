@@ -8,7 +8,7 @@ It initially appeared in viruses circulating in Europe but has since spread and 
 
 <figure>
 	<a id="nextstrain:D614G"></a>
-	<img style="width:90%;" src="figures/nextstrain_d614g_2020-05-01.png" alt="">
+	<img style="width:90%;" src="figures/nextstrain_d614g_2020-05-01.PNG" alt="">
 </figure>
 
 Here, we use SARS-CoV-2 genomes from patients in Washington state to explore whether or not the Spike:D614G mutation has any impact on viral load, the average age of infected individuals, and clinical outcomes.
@@ -27,6 +27,8 @@ Early in March, the majority of circulating viruses belonged to clade D, but cla
   <figcaption>Figure 1: Histogram of SARS-CoV-2 samples by date. Samples are classified into clades D or G according to amino acid at position 614 in the spike protein.
   </figcaption>
 </figure>
+
+
 
 We hypothesized that if D614G functionally improved virus replication or transmission, patients infected with viruses containing this mutation would have increased viral loads.
 Using cycle threshold (Ct) from polymerase chain reaction (PCR) assays as a measurement of viral load, we found that patients with clade D viruses had an average Ct of 19.89 while patients with clade G viruses had an average Ct of 18.57.
@@ -54,6 +56,8 @@ We compared Ct and age across clade by time and found that early in March, the C
   </figcaption>
 </figure>
 
+
+
 Therefore, we decided to restrict the analysis to samples collected from March 10 and on as then viruses in both clades were circulating in Washington.
 From samples collected between March 10-24, we found an average Ct of 19.57 for patients with viruses in clade D and an average Ct of 18.52 for patients with viruses in clade G.
 These difference in average Ct were significant by Student's t-test (p-value: 0.005) and Wilcoxon Rank Sum test (p-value: 0.0004).
@@ -66,6 +70,8 @@ By Student's t-test and Wilcoxon Rank Sum test, these differences in age were si
   <figcaption>Figure 3: Average Ct and age by clade from March 10-24. (A) Violin plots of average Ct by clade for samples from patients in Washington between March 10-24. Dots represent the mean and bars show two standard deviations from the mean. (B) Horizontal dot plot of age by clade for samples from patients in Washington between March 10-24. Age was given by decade bin and vertically jittered for visualization.
   </figcaption>
 </figure>
+
+
 
 The lower average Ct and lower age seen in patients with viruses in clade G is consistent with increased replication potential conferred by the Spike: D614G mutation.
 This is preliminary finding that should be followed by laboratory experiments comparing replication potential of these mutations _in vitro_.
@@ -101,6 +107,8 @@ Thus, the absence of an age difference in patients infected with viruses from cl
   <figcaption>Figure 4: Average Ct and age by clade for patients in UW Medicine Network. (A) Violin plots of average Ct by clade for samples from patients in the UW Medicine system. Dots represent the mean and bars show two standard deviations from the mean. (B) Horizontal dot plot of age by clade for samples from patients in UW Medicine System. Age was given by decade bin and vertically jittered for visualization.
   </figcaption>
 </figure>
+
+
 
 Next, we used Chi-squared tests, or where appropriate the Fisher Exact test, to compare proportions of sex, immunocompromised or active cancer, deceased, inpatient vs. outpatient, and critical care admission across clades.
 There was no statistically significant difference in sex by clade (p-value: 0.10), nor was there a significant difference in proportion of immunocompromised patients or patients with active cancer by clade (p-value: 0.36).  
