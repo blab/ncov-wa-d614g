@@ -1,17 +1,21 @@
 # Comparing viral load and clinical outcomes in Washington State by D614G mutation in spike protein of SARS-CoV-2
 
-Since its introduction into humans around the end of November or early December, SARS-CoV-2 has rapidly spread worldwide.
+Since its introduction into humans around the end of November or early December, SARS-CoV-2 has rapidly spread worldwide, wreaking havoc in the lives of many.
 As the virus replicates, it has fixed mutations at a rate similar to other known RNA viruses.
-So far, there is only evidence for one abundant mutation in the viral spike protein.
+So far, there is only evidence for one major mutation in the viral spike protein.
 As shown in the screenshot from Nextstrain below, this mutation D614G has arisen multiple times.
 It initially appeared in viruses circulating in Europe but has since spread and is currently present in viruses in every region of the world.
+
+<br><br>
 
 <figure>
 	<a id="nextstrain:D614G"></a>
 	<img style="width:90%;" src="figures/nextstrain_d614g_2020-05-01.PNG" alt="">
 </figure>
 
-Here, we use SARS-CoV-2 genomes from patients in Washington state to explore whether or not the Spike:D614G mutation has any impact on viral load, the average age of infected individuals, and clinical outcomes.
+<br><br>
+
+Here, we use SARS-CoV-2 genomes from patients in Washington State to explore whether or not the Spike:D614G mutation has any impact on viral load, the average age of infected individuals, and clinical outcomes.
 We find preliminary evidence of increased replication potential in viruses with the D614G spike protein mutation, but we do not find evidence for a difference in clinical outcomes among patients infected with viruses containing this mutation.  
 
 ## SARS-CoV-2 replication fitness assessed by viral load and patient age across D614G spike protein mutation
@@ -28,7 +32,7 @@ Early in March, the majority of circulating viruses belonged to clade D, but cla
   </figcaption>
 </figure>
 
-
+<br><br>
 
 We hypothesized that if D614G functionally improved virus replication or transmission, patients infected with viruses containing this mutation would have increased viral loads.
 Using cycle threshold (Ct) from polymerase chain reaction (PCR) assays as a measurement of viral load, we found that patients with clade D viruses had an average Ct of 19.89 while patients with clade G viruses had an average Ct of 18.57.
@@ -56,7 +60,7 @@ We compared Ct and age across clade by time and found that early in March, the C
   </figcaption>
 </figure>
 
-
+<br><br>
 
 Therefore, we decided to restrict the analysis to samples collected from March 10 and on as then viruses in both clades were circulating in Washington.
 From samples collected between March 10-24, we found an average Ct of 19.57 for patients with viruses in clade D and an average Ct of 18.52 for patients with viruses in clade G.
@@ -71,7 +75,7 @@ By Student's t-test and Wilcoxon Rank Sum test, these differences in age were si
   </figcaption>
 </figure>
 
-
+<br><br>
 
 The lower average Ct and lower age seen in patients with viruses in clade G is consistent with increased replication potential conferred by the Spike: D614G mutation.
 This is preliminary finding that should be followed by laboratory experiments comparing replication potential of these mutations _in vitro_.
@@ -108,7 +112,7 @@ Thus, the absence of an age difference in patients infected with viruses from cl
   </figcaption>
 </figure>
 
-
+<br><br>
 
 Next, we used Chi-squared tests, or where appropriate the Fisher Exact test, to compare proportions of sex, immunocompromised or active cancer, deceased, inpatient vs. outpatient, and critical care admission across clades.
 There was no statistically significant difference in sex by clade (p-value: 0.10), nor was there a significant difference in proportion of immunocompromised patients or patients with active cancer by clade (p-value: 0.36).  
