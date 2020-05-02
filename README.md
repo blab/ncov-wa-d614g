@@ -1,6 +1,6 @@
 # Comparing viral load and clinical outcomes in Washington State across D614G mutation in spike protein of SARS-CoV-2
 
-Cassia Wagner, Pavitra Roychoudhury, Alexander L. Greninger, Meei-Li Huang, Arun Nalla, Truong N Nguyen, Gregory Pepper, Adam Reinhardt, Lasata Shrestha, Hong Xie, James Hadfield, Emma B. Hodcroft, Jover Lee, Louise H. Moncla, Nicola F. Müller, Richard A. Neher, Geoffrey S. Baird, Keith R. Jerome, Trevor Bedford
+Cassia Wagner, Pavitra Roychoudhury, James Hadfield, Emma B. Hodcroft, Jover Lee, Louise H. Moncla, Nicola F. Müller, Caitlin Behrens, Meei-Li Huang, Patrick Mathias, Gregory Pepper, Lasata Shrestha, Hong Xie, Richard A. Neher, Geoffrey S. Baird, Alexander L. Greninger, Keith R. Jerome, Trevor Bedford
 
 -------------------------------------------
 
