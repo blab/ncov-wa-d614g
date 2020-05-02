@@ -14,8 +14,8 @@ library(tidyverse)
 
 #### Load dataframes
 ```{r, results='hide'}
-df_clade <- read_tsv(file = 'results/df_2020-04-21_UW.tsv')
-df_clinical <- read_tsv(file = 'data/20200421_UW_chartreview.tsv')
+df_clade <- read_tsv(file = '../results/df_2020-04-21_UW.tsv')
+df_clinical <- read_tsv(file = '../data/20200421_UW_chartreview.tsv')
 ```
 
 #### Examining df_clade:
@@ -126,7 +126,8 @@ age <- ggplot(df, mapping = aes(x=clade, y=age_bin, color=clade, fill=clade)) +
   theme(text = element_text(family = "NimbusSan", size = 10)) +
   ylab("Age") +
   xlab("Clade") +
-  labs(subtitle = "Samples with charts in UW Medicine system")
+  labs(subtitle = "Samples from patients in UW Medicine system") +
+  labs(caption = "D: Mean age = 55.6, G: Mean age = 53.4,  t-test p-value = 0.49\n Wilcoxon Rank Sum test p-value = 0.51")
 age
 png("../figures/age-clade_clinical.png")
 age
@@ -145,7 +146,8 @@ ct <- ggplot(df, aes(x=clade, y=avg_ct), na.rm=TRUE) +
   theme(text = element_text(family = "NimbusSan", size = 10)) +
   ylab("Average Ct") +
   xlab("Clade") +
-  labs(subtitle = "Samples with charts in UW Medicine system")
+  labs(subtitle = "Samples from patients in UW Medicine system") +
+  labs(caption = "D: Mean Ct = 18.85, G: Mean Ct = 18.03,  t-test p-value = 0.08\n Wilcoxon Rank Sum test p-value = 0.10")
 ct
 png("../figures/ct-clade_clinical.png")
 ct
@@ -168,6 +170,16 @@ fisher.test(df$critical_care, df$clade)
 table(df$site, df$clade)
 chisq.test(df$site, df$clade)
 ```
+
+Restricting the dataset to the same time frame to the March 10-24 timeframe used for all sequences analyses:
+```{r}
+df_restricted <- df[df$collection_date > as.Date("2020-03-09") & df$collection_date < as.Date("2020-03-25"), ]
+```
+```{r}
+table(df_restricted$site, df_restricted$clade)
+chisq.test(df_restricted$site, df_restricted$clade)
+```
+
 
 ### Let severe represent either death or critical care, is there a difference in severe across clade?
 ```{r}
