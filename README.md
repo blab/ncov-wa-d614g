@@ -15,7 +15,7 @@ It initially appeared in viruses circulating in Europe but has since spread and 
 
 <br>
 
-Here, we use SARS-CoV-2 genomes from patients in Washington State to explore whether or not the Spike: D614G mutation has any impact on replication potential of the virus or clinical outcomes of patients infected by the virus
+Here, we use SARS-CoV-2 genomes from patients in Washington State to explore whether or not the Spike: D614G mutation has any impact on replication potential of the virus or clinical outcomes of patients infected by the virus.
 We find preliminary evidence of increased viral load and lower age of infection for viruses with the D614G spike protein mutation. We do not find convincing evidence for a difference in clinical outcomes among patients infected with viruses containing this mutation.  
 
 ## SARS-CoV-2 replication fitness assessed by viral load and patient age across D614G spike protein mutation
