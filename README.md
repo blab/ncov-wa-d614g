@@ -34,7 +34,7 @@ Early in March, the majority of circulating viruses belonged to clade D, but cla
   </figcaption>
 </figure>
 
-<br>
+<br><br>
 
 We hypothesized that if D614G functionally improved virus replication, patients infected with viruses containing this mutation would have increased viral loads.
 Using cycle threshold (Ct) from polymerase chain reaction (PCR) assays as a measurement of viral load, we found that patients with clade D viruses had an average Ct of 19.89 while patients with clade G viruses had an average Ct of 18.57.
@@ -64,7 +64,7 @@ We compared Ct and age across clade by time and found that early in March, the C
   </figcaption>
 </figure>
 
-<br>
+<br><br>
 
 Therefore, we decided to restrict the analysis to samples collected from March 10 on as then viruses from both clades were circulating in Washington.
 From samples collected between March 10-24, the average Ct was 19.57 for patients with viruses in clade D, and the average Ct was 18.52 for patients with viruses in clade G (Fig. 3A).
@@ -82,7 +82,7 @@ By Student's t-test and Wilcoxon Rank Sum test, these differences in age were si
   </figcaption>
 </figure>
 
-<br>
+<br><br>
 
 These are preliminary finding that requires further verification and should be followed by laboratory experiments comparing replication potential of these mutations _in vitro_.
 However, the lower average Ct and lower age seen in patients with viruses in clade G is consistent with increased replication potential conferred by the Spike: D614G mutation.
