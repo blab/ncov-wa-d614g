@@ -77,7 +77,7 @@ By Student's t-test and Wilcoxon Rank Sum test, these differences in age were si
 
 <figure>
 	<a id="fig:age-ct-clade"></a>
-	<img style="width:90%;" src="figures/ct-age-clade.png" alt="">
+	<img style="width:50%;" src="figures/ct-age-clade.png" alt="">
   <figcaption>Figure 3: Average Ct and age by clade from March 10-24. (A) Violin plots of average Ct by clade for samples from patients in Washington between March 10-24. Dots represent the mean and bars show two standard deviations from the mean. (B) Horizontal dot plot of age by clade for samples from patients in Washington between March 10-24. Age was given by decade bin and vertically jittered for visualization.
   </figcaption>
 </figure>
@@ -121,7 +121,7 @@ Thus, the absence of an age difference in patients infected with viruses from cl
 
 <figure>
 	<a id="fig:age-ct-clade-clinical"></a>
-	<img style="width:90%;" src="figures/ct-age-clade_clinical.png" alt="">
+	<img style="width:50%;" src="figures/ct-age-clade_clinical.png" alt="">
   <figcaption>Figure 4: Average Ct and age by clade for patients in UW Medicine Network. (A) Violin plots of average Ct by clade for samples from patients in the UW Medicine system. Dots represent the mean and bars show two standard deviations from the mean. (B) Horizontal dot plot of age by clade for samples from patients in UW Medicine System. Age was reported by decade bin and vertically jittered for visualization.
   </figcaption>
 </figure>
