@@ -1,5 +1,9 @@
 # Comparing viral load and clinical outcomes in Washington State across D614G mutation in spike protein of SARS-CoV-2
 
+Cassia Wagner, Pavitra Roychoudhury, Alexander L. Greninger, Meei-Li Huang, Arun Nalla, Truong N Nguyen, Gregory Pepper, Adam Reinhardt, Lasata Shrestha, Hong Xie, James Hadfield, Emma B. Hodcroft, Jover Lee, Louise H. Moncla, Nicola F. Müller, Richard A. Neher, Geoffrey S. Baird, Keith R. Jerome, Trevor Bedford
+
+-------------------------------------------
+
 Since its introduction into humans around the end of November or early December, SARS-CoV-2 has rapidly spread worldwide, wreaking havoc in the lives of many.
 As the virus replicates, it has fixed mutations at a rate similar to other known RNA viruses (data from Nextstrain).
 So far, there is only evidence for one major mutation in the viral spike protein.
