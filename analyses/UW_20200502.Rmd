@@ -419,6 +419,11 @@ plot_age_bin_restricted
 
 ## CLINICAL ANALYSIS
 
+```{r}
+summary(df[!is.na(df$deceased), ])
+```
+
+
 #### How are the clades spread over time for clinical samples?
 ```{r, echo=FALSE}
 clade_time_clinic <- df %>%
