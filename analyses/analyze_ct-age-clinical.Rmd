@@ -1,0 +1,545 @@
+---
+title: "SFS-UW_2020-05-13"
+author: "Cassia Wagner"
+date: "5/15/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(dev="CairoPNG")
+options(bitmapType = 'cairo')
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(gridExtra)
+library(ggsignif)
+```
+#### Load data:
+```{r}
+df <- read_tsv("../data/WA_df.tsv")
+```
+```{r}
+summary(df)
+```
+
+
+#### Data prep for analysis:
+```{r}
+df$primers <- factor(df$primers, levels = c("N1, N2", "ORF1ab", "Egene, RdRp"))
+df$source <- factor(df$source, levels = c("UW", "SFS"))
+df$clade <- factor(df$clade, levels = c("D", "G"))
+df$county <- factor(df$county)
+df$sex <- factor(df$sex)
+df$deceased <- factor(df$deceased, levels = c("yes", "no"))
+df$site <- factor(df$site, levels = c("outpatient", "inpatient"))
+df$critical_care <- factor(df$critical_care)
+df$immuncompromised_cancer <- factor(df$immuncompromised_cancer)
+df$age_bin = factor(df$age_bin, levels = c("under 10", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80-89", "90+"), ordered = TRUE)
+df <- df %>%
+  mutate(severe = ifelse(critical_care == "yes" | deceased == "yes", "yes", "no")) %>%
+  mutate(severe = factor(severe)) %>%
+  mutate(post_symp = date - symptom_onset) %>%
+  mutate(ct_norm = avg_ct/avg_rnase_p_crt)
+
+df$week[df$date < as.Date("2020-03-10")] = 1 
+df$week[df$date < as.Date("2020-03-17") & df$date > as.Date("2020-03-09")] = 2
+df$week[df$date < as.Date("2020-03-24") & df$date > as.Date("2020-03-16")] = 3
+df$week[df$date < as.Date("2020-03-31") & df$date > as.Date("2020-03-23")] = 4
+df$week[df$date < as.Date("2020-04-07") & df$date > as.Date("2020-03-30")] = 5
+df$week[df$date > as.Date("2020-04-06")] = 6
+```
+```{r}
+summary(df)
+```
+
+
+### CT, AGE, CLADE ANALYSIS
+Note: I'm going to split analysis by SFS & UW sequences because these are two totally sample sets, collected for different reasons and PCR amplifed in diffeent labs. UW sequences are from samples ordered by a healthcare provider while SFS sequences are from people at-home who were not symptomatic enough to seek clinical care.
+
+
+#### How are the clades spread over time?
+```{r, echo=FALSE, fig.height=4, fig.width=8}
+clade_time <- df %>%
+  ggplot(aes(x=date, color=clade, fill=clade)) + 
+  geom_bar(position = position_stack()) + 
+  scale_fill_manual(values=c('#6DC1B3', '#F6C445')) +
+  scale_color_manual(values=c('#6DC1B3', '#F6C445')) +
+  theme_minimal() +
+  theme(legend.position = c(0.9, 0.8)) +
+  ylab("Count") +
+  xlab("Date") 
+clade_time
+```
+
+
+#### How are primers spread over time?
+```{r, echo=FALSE, fig.height=4, fig.width=8}
+primer_time <- df %>%
+  filter(source == "UW") %>%
+  ggplot(aes(x=date, color=primers, fill=primers)) + 
+  geom_bar(position = position_stack()) + 
+  theme_minimal() +
+  theme(legend.position = c(0.85, 0.85)) +
+  ylab("Count") +
+  xlab("Date")
+primer_time
+```
+Do different primers have different Ct's?
+```{r, fig.height=4, fig.width=8}
+dotplot_ct_primer <- df %>%
+  filter(source == "UW") %>%
+  ggplot(mapping = aes(x=primers, y=avg_ct)) + 
+  geom_dotplot(binaxis="y", stackdir="center", dotsize = 0.6, aes(color=primers, fill=primers)) +
+  theme_minimal() +
+  stat_summary(fun.data="mean_sdl", geom="pointrange", size = 0.1) +
+  ylab("Average Ct") +
+  xlab("Primer set") +
+  geom_signif(comparisons = list(c("Egene, RdRp", "N1, N2"), c("N1, N2", "ORF1ab")), textsize = 3, test = "wilcox.test")
+dotplot_ct_primer
+```
+For UW Virology samples, decided to use N1, N2 primers since they're the most abundant and present when D614 & G614 virus are circulating.
+
+```{r, echo=FALSE, fig.height=4, fig.width=8}
+clade_time_n1n2 <- df %>%
+  filter(primers == "N1, N2") %>%
+  ggplot(aes(x=date, color=clade, fill=clade)) + 
+  geom_bar(position = position_stack()) + 
+  scale_fill_manual(values=c('#6DC1B3', '#F6C445')) +
+  scale_color_manual(values=c('#6DC1B3', '#F6C445')) +
+  theme_minimal() +
+  theme(legend.position = c(0.9, 0.8)) +
+  ylab("Count") +
+  xlab("Date") +
+  labs(subtitle = "Primer set: N1 & N2")
+clade_time_n1n2
+```
+
+
+
+#### Is there a difference in Ct by clade?
+For UW:
+```{r}
+t.test(df$avg_ct[df$source == "UW" & df$primers == "N1, N2"]~df$clade[df$source == "UW" & df$primers == "N1, N2"])
+wilcox.test(formula = avg_ct ~ clade, data= df[df$source == "UW" & df$primers == "N1, N2", ], alternative = "two.sided")
+
+median(df$avg_ct[df$source == "UW" & df$primers == "N1, N2" & df$clade == "D"])
+median(df$avg_ct[df$source == "UW" & df$primers == "N1, N2" & df$clade == "G"])
+```
+For SFS:
+```{r}
+t.test(df$avg_ct[df$source == "SFS"]~df$clade[df$source == "SFS"])
+wilcox.test(formula = avg_ct ~ clade, data= df[df$source == "SFS", ], alternative = "two.sided")
+
+median(df$avg_ct[df$source == "SFS" & df$clade == "D"])
+median(df$avg_ct[df$source == "SFS" & df$clade == "G"])
+```
+```{r}
+t.test(df$ct_norm ~ df$clade)
+wilcox.test(formula = ct_norm ~ clade, data = df, alternative = "two.sided")
+```
+
+```{r, fig.width=5}
+dotplot_ct <- df %>%
+  filter(primers == "N1, N2" | source == "SFS") %>%
+  ggplot(mapping = aes(x=clade, y=avg_ct)) + 
+  geom_dotplot(binaxis="y", stackdir="center", dotsize = 0.6, binwidth = 0.5, aes(color=clade, fill=clade)) +
+  geom_boxplot(alpha=0, size=0.3) +
+  scale_fill_manual(name = "Clade", values=c('#6DC1B3', '#F6C445')) +
+  scale_color_manual(name = "Clade", values=c('#6DC1B3', '#F6C445')) +
+  theme_minimal() +
+  theme(legend.position = c(0.5, -0.045), 
+        legend.direction = "horizontal",
+        axis.text.x = element_blank()) +
+  ylab("Average Ct") +
+  xlab("") +
+  geom_signif(comparisons = list(c("D", "G")), textsize = 3, test="wilcox.test") +
+  facet_wrap(~ source)
+dotplot_ct
+```
+
+#### Is there a difference in age by clade?
+For UW:
+```{r}
+t.test(df$bin_age[df$source == 'UW']~df$clade[df$source == 'UW'])
+wilcox.test(formula = bin_age ~ clade, data= df[df$source == 'UW', ], alternative = "two.sided")
+```
+For SFS:
+```{r}
+t.test(df$bin_age[df$source == 'SFS']~df$clade[df$source == 'SFS'])
+wilcox.test(formula = bin_age ~ clade, data= df[df$source == 'SFS', ], alternative = "two.sided")
+```
+Do we have the power to find an age difference in SCAN samples?
+```{r}
+testing_age <- function(df, ss) {
+  ttest <- df %>%
+    sample_n(ss) %>%
+    t.test(bin_age ~ clade, data = ., var.equal = TRUE)
+  return(ttest$p.value)
+}
+
+power_age_79 <- map(1:10000, ~ testing_age(df[df$source == "UW", ], 79))
+```
+```{r}
+sum(power_age_79 < 0.05)/10000
+```
+
+```{r, fig.width=5}
+dotplot_age <- df %>%
+  drop_na(bin_age, age_bin) %>%
+  ggplot(mapping = aes(x=clade, y=bin_age), na.rm=TRUE) + 
+  geom_dotplot(aes( color=clade, fill=clade), binaxis="y", stackdir="center", stackratio = 0.3, dotsize = 0.5, position = position_jitter(width = 0, height=4)) + 
+  scale_fill_manual(name = "Clade", values=c('#6DC1B3', '#F6C445')) +
+  scale_color_manual(name = "Clade", values=c('#6DC1B3', '#F6C445')) +
+  theme_minimal() +
+  theme(legend.position = c(0.5, -0.045), 
+        legend.direction = "horizontal",
+        axis.text.x = element_blank()) +
+  ylab("Age") +
+  xlab("") +
+  stat_summary(fun.data="mean_sdl", geom="pointrange", size = 0.1) +
+  geom_signif(comparisons = list(c("D", "G")), textsize = 3, test="t.test") +
+  facet_wrap(~ source)
+dotplot_age
+```
+
+
+
+#### Age vs. Ct
+```{r, fig.width=7}
+ct_age <- df%>%
+  filter(source == "UW" & primers == "N1, N2") %>%
+  ggplot(aes(x = bin_age, y = avg_ct)) +
+  geom_point(aes(color=clade, fill=clade)) +
+  scale_fill_manual(values=c('#6DC1B3', '#F6C445')) +
+  scale_color_manual(values=c('#6DC1B3', '#F6C445')) +
+  geom_smooth(colour = "black", size=0.5, method = "lm") +
+  theme_minimal() +
+  xlab("Age") +
+  ylab("Average Ct")
+ct_age
+```
+
+#### Age vs. time
+```{r, fig.width=7}
+age_time <- df %>%
+  drop_na(age_bin) %>%
+  ggplot(aes(x = date, y = bin_age)) +
+  geom_point(aes(color=clade, fill=clade)) +
+  scale_fill_manual(values=c('#6DC1B3', '#F6C445')) +
+  scale_color_manual(values=c('#6DC1B3', '#F6C445')) +
+  theme_minimal() +
+  geom_smooth(method="lm", col = "black", size=0.5) +
+  xlab("Date") +
+  ylab("Age")
+age_time
+
+```
+
+
+#### Ct vs. time
+```{r, fig.width=7}
+ct_time <- df %>%
+  filter(primers == "N1, N2") %>%
+  ggplot(aes(x = date, y = avg_ct)) +
+  geom_point(aes(color=clade, fill=clade)) +
+  scale_fill_manual(values=c('#6DC1B3', '#F6C445')) +
+  scale_color_manual(values=c('#6DC1B3', '#F6C445')) +
+  theme_minimal() +
+  geom_smooth(method="lm", col = "black", size=0.5) +
+  xlab("Date") +
+  ylab("Average Ct")
+ct_time
+```
+
+#### Ct vs. symptom onset
+```{r, fig.width=7}
+ct_sympon <- df %>%
+  filter(!is.na(post_symp)) %>%
+  ggplot(aes(x = post_symp, y = avg_ct)) +
+  geom_point(aes(color=clade, fill=clade)) +
+  scale_fill_manual(values=c('#6DC1B3', '#F6C445')) +
+  scale_color_manual(values=c('#6DC1B3', '#F6C445')) +
+  theme_minimal() +
+  geom_smooth(method = "lm", color = "black", size=0.5) +
+  xlab("Days since symptoms started") +
+  ylab("Average Ct")
+ct_sympon
+```
+
+#### Linear model of Ct
+```{r}
+lreg_ct <- glm(avg_ct ~ clade + bin_age + primers + week, data = df[df$source == "UW", ])
+summary(lreg_ct)
+
+df$residuals_ct[!is.na(df$age_bin) & df$source == "UW"] = residuals(lreg_ct)
+
+p1_ct <- cbind(Fitted = fitted(lreg_ct), Residuals=residuals(lreg_ct)) %>%
+  as.data.frame() %>%
+  ggplot(aes(x=Fitted, y=Residuals)) + geom_point()
+
+p2_ct <- df %>%
+  filter(!is.na(residuals_ct)) %>%
+  ggplot(aes(x=residuals_ct)) +
+  geom_histogram(aes(y = ..density..), binwidth = 1) +
+  xlab("Residuals") +
+  stat_function(fun = dnorm, 
+                colour = "red", 
+                args = list(mean = 0, sd = sd(df$ residuals_ct[!is.na(df$residuals_ct)])))
+
+gridExtra::grid.arrange(p1_ct, p2_ct, nrow=1)
+```
+```{r}
+lreg_ct_n1n2 <- glm(avg_ct ~ clade + bin_age + week, data = df[df$source == "UW" & df$primers == "N1, N2", ])
+summary(lreg_ct_n1n2)
+
+df$residuals_ct_n1n2[!is.na(df$age_bin) & df$source == "UW" & df$primers == "N1, N2"] = residuals(lreg_ct_n1n2)
+
+p1_ct_n1n2 <- cbind(Fitted = fitted(lreg_ct_n1n2), Residuals=residuals(lreg_ct_n1n2)) %>%
+  as.data.frame() %>%
+  ggplot(aes(x=Fitted, y=Residuals)) + geom_point()
+
+p2_ct_n1n2 <- df %>%
+  filter(!is.na(residuals_ct_n1n2)) %>%
+  ggplot(aes(x=residuals_ct_n1n2)) +
+  geom_histogram(aes(y = ..density..), binwidth = 1) +
+  stat_function(fun = dnorm, 
+                colour = "red", 
+                args = list(mean = 0, sd = sd(df$ residuals_ct[!is.na(df$residuals_ct)])))
+
+gridExtra::grid.arrange(p1_ct_n1n2, p2_ct_n1n2, nrow=1)
+```
+
+### CLINICAL ANALYSIS
+```{r}
+summary(df[!is.na(df$deceased), ])
+```
+
+#### How are the clades spread over time for clinical samples?
+```{r, echo=FALSE}
+clade_time_uwmed <- df %>%
+  filter(!is.na(deceased)) %>%
+  ggplot(aes(x=date, color=clade, fill=clade)) + 
+  geom_bar(position = position_stack()) + 
+  scale_fill_manual(values=c('#6DC1B3', '#F6C445')) +
+  scale_color_manual(values=c('#6DC1B3', '#F6C445')) +
+  theme_minimal() +
+  ylab("Count") +
+  xlab("Date") +
+  labs(subtitle = "Samples from patients in UW Medicine System") +
+  facet_grid(primers ~ ., margins = TRUE)
+clade_time_uwmed
+```
+
+#### Is Ct of UW Med affiliated patients different than Ct of other UW Virology patients?
+```{r}
+df_uw <- df%>%
+  filter(source == "UW") %>%
+  mutate(uw = ifelse(!is.na(deceased), "UW affiliated", "Other healthcare network" ))
+```
+```{r}
+df_uw %>%
+  filter(primers == "N1, N2") %>%
+  {t.test(.$avg_ct ~ .$uw)}
+wilcox.test(avg_ct ~ uw, data = df_uw[df_uw$primers == "N1, N2", ])
+
+median(df_uw$avg_ct[df_uw$uw == "Other healthcare network" & df_uw$primers == "N1, N2"])
+median(df_uw$avg_ct[df_uw$uw == "UW affiliated" & df_uw$primers == "N1, N2"])
+```
+```{r}
+df_uw %>%
+  filter(uw == "Other healthcare network" & primers == "N1, N2") %>%
+  wilcox.test(avg_ct ~ clade, data = .)
+```
+```{r}
+dotplot_ct_system <- df_uw %>%
+  filter(primers == "N1, N2") %>%
+  ggplot(mapping = aes(x=uw, y=avg_ct)) + 
+  geom_dotplot(binaxis="y", stackdir="center", dotsize = 0.6, binwidth = 0.5, fill="white") +
+  geom_boxplot(alpha=0, size=0.3) +
+  theme_minimal() +
+  ylab("Average Ct") +
+  xlab("") +
+  geom_signif(comparisons = list(c("Other healthcare network", "UW affiliated")), textsize = 3, test="wilcox.test") 
+dotplot_ct_system
+```
+
+#### Is Ct different across clade in UW Med affiliated patients?
+```{r}
+df %>%
+  filter(!is.na(deceased) & primers == "N1, N2") %>%
+  {t.test(.$avg_ct ~ .$clade)}
+
+df %>%
+  filter(!is.na(deceased) & primers == "N1, N2") %>%
+wilcox.test(formula = avg_ct ~ clade, data = ., alternative = "two.sided")
+
+median(df$avg_ct[!is.na(df$deceased) & df$primers == "N1, N2" & df$clade == "D"])
+median(df$avg_ct[!is.na(df$deceased) & df$primers == "N1, N2" & df$clade == "G"])
+```
+```{r}
+dotplot_ct_uwmed <- df %>%
+  filter(!is.na(deceased) & primers == "N1, N2") %>%
+  ggplot(mapping = aes(x=clade, y=avg_ct)) + 
+  geom_dotplot(binaxis="y", stackdir="center", dotsize = 0.6, binwidth = 0.5, aes(color=clade, fill=clade)) +
+  geom_boxplot(alpha=0, size=0.3) +
+  scale_fill_manual(name = "Clade", values=c('#6DC1B3', '#F6C445')) +
+  scale_color_manual(name = "Clade",values=c('#6DC1B3', '#F6C445')) +
+  theme_minimal() +
+  theme(legend.position = c(0.5, -0.045), 
+        legend.direction = "horizontal",
+        axis.text.x = element_blank()) +
+  ylab("Average Ct") +
+  xlab("") +
+  geom_signif(comparisons = list(c("D", "G")), textsize = 3, test="wilcox.test") +
+  labs(subtitle = "Patients at UW Medicine affiliates")
+dotplot_ct_uwmed
+```
+
+
+#### Is their a difference in age between UW Medicine patients and other patients tested at UW Virology?
+```{r}
+t.test(df_uw$bin_age ~ df_uw$uw)
+```
+
+#### Is their a difference in age by clade in UW Medicine affiliated patients?
+```{r}
+df %>%
+  filter(!is.na(deceased)) %>%
+  {t.test(.$bin_age ~ .$clade)}
+```
+```{r, fig.width=4, fig.height=4}
+dotplot_age_uwmed <- df %>%
+  filter(!is.na(deceased)) %>%
+  drop_na(bin_age, age_bin) %>%
+  ggplot(mapping = aes(x=clade, y=bin_age), na.rm=TRUE) + 
+  geom_dotplot(aes( color=clade, fill=clade), binaxis="y", stackdir="center", stackratio = 0.8, dotsize = 1, position = position_jitter(width = 0, height=4)) + 
+  scale_fill_manual(name = "Clade", values=c('#6DC1B3', '#F6C445')) +
+  scale_color_manual(name = "Clade", values=c('#6DC1B3', '#F6C445')) +
+  theme_minimal() +
+  theme(legend.position = c(0.5, -0.045), 
+        legend.direction = "horizontal",
+        axis.text.x = element_blank()) +
+  ylab("Age") +
+  xlab("") +
+  stat_summary(fun.data="mean_sdl", geom="pointrange", size = 0.1) +
+  geom_signif(comparisons = list(c("D", "G")), textsize = 3, test="t.test") +
+  labs(subtitle = "Patients at UW Medicine affiliates")
+dotplot_age_uwmed
+```
+
+#### Across what variables in UW Medicine affiliated patients does Ct differ?
+```{r, fig.width=5}
+df %>%
+  filter(!is.na(deceased) & primers == "N1, N2") %>%
+  ggplot(aes(x = county, y = avg_ct)) +
+  geom_dotplot(binaxis="y", stackdir="center")
+
+df%>%
+  filter(!is.na(deceased) & primers == "N1, N2") %>%
+  ggplot(aes(x = bin_age, y = avg_ct)) +
+  geom_point(aes(color=clade, fill=clade)) +
+  geom_smooth(colour = "black", size=0.5, method = "lm")
+
+df %>%
+  filter(!is.na(deceased) & primers == "N1, N2") %>%
+  ggplot(aes(x = sex, y = avg_ct)) +
+  geom_dotplot(binaxis="y", stackdir="center")
+
+df %>%
+  filter(!is.na(deceased) & primers == "N1, N2") %>%
+  ggplot(aes(x = immuncompromised_cancer, y = avg_ct)) +
+  geom_dotplot(binaxis="y", stackdir="center")
+
+df %>%
+  filter(!is.na(deceased) & primers == "N1, N2") %>%
+  ggplot(aes(x = site, y = avg_ct)) +
+  geom_dotplot(binaxis="y", stackdir="center")
+
+df %>%
+  filter(!is.na(deceased) & primers == "N1, N2") %>%
+  ggplot(aes(x = severe, y = avg_ct)) +
+  geom_dotplot(binaxis="y", stackdir="center")
+```
+
+#### Linear model of Ct in patients affiliated with UW Medicine
+```{r}
+lreg_ct_uwmed = glm(avg_ct ~ clade + sex + week + severe + bin_age + site + immuncompromised_cancer, data = df[df$primers == "N1, N2", ])
+summary(lreg_ct_uwmed)
+
+df$residuals_ct_uwmed[!is.na(df$bin_age) & !is.na(df$deceased) & df$primers == "N1, N2"] = residuals(lreg_ct_uwmed)
+
+p1_ct_uwmed <- cbind(Fitted = fitted(lreg_ct_uwmed),Residuals=residuals(lreg_ct_uwmed)) %>%
+  as.data.frame() %>%
+  ggplot(aes(x=Fitted, y=Residuals)) + geom_point()
+
+p2_ct_uwmed <- df %>%
+  filter(!is.na(residuals_ct_uwmed)) %>%
+  ggplot(aes(x=residuals_ct_uwmed)) +
+  geom_histogram(aes(y = ..density..), binwidth = 1.5) +
+  xlab("Residuals") +
+  stat_function(fun = dnorm, 
+                colour = "red", 
+                args = list(mean = 0, sd = sd(df$ residuals_ct_uwmed[!is.na(df$residuals_ct_uwmed)])))
+
+gridExtra::grid.arrange(p1_ct_uwmed, p2_ct_uwmed, ncol=2)
+```
+
+#### Is their a difference in sex by clade?
+```{r, echo=FALSE}
+table(df$sex, df$clade)
+chisq.test(df$sex, df$clade)
+```
+
+#### Is there a difference in immunocompromised/cancer by clade?
+```{r, echo=FALSE}
+table(df$immuncompromised_cancer, df$clade)
+chisq.test(df$immuncompromised_cancer, df$clade)
+```
+```{r, echo=FALSE}
+table(df_restricted$immuncompromised_cancer, df_restricted$clade)
+chisq.test(df_restricted$immuncompromised_cancer, df_restricted$clade)
+```
+
+#### Is there a difference in inpatient vs. outpatient across clade?
+```{r}
+table(df$site, df$clade)
+chisq.test(df$site, df$clade)
+```
+
+#### Is there a difference in proportion of deceased or required ICU care across clade?
+```{r}
+table(df$severe, df$clade)
+chisq.test(df$severe, df$clade)
+```
+
+#### Plotting chart review
+```{r}
+plotdf<- df %>%
+  filter(!is.na(deceased)) %>%
+  mutate(female = ifelse(sex == "F", "yes", "no")) %>%
+  mutate(inpatient = ifelse(site == "inpatient", "yes", "no")) %>%
+  pivot_longer(cols = c(female, immuncompromised_cancer, inpatient, severe), names_to = "variable") %>%
+  select(date, clade, variable, value) %>%
+  filter(!is.na(variable)) %>%
+  mutate(color = ifelse(clade == "D" & value == "yes", "yes.d", NA)) %>%
+  mutate(color = replace(color, clade == "D" & value == "no", "no.d")) %>%
+  mutate(color = replace(color, clade == "G" & value == "yes", "yes.g")) %>%
+  mutate(color = replace(color, clade == "G" & value == "no", "no.g"))
+
+# New facet label names for variable
+var.labs <- c("Female", "Immuncompromised \nor active cancer", "Inpatient", "Critical care \n or deceased")
+names(var.labs) <- c("female", "immuncompromised_cancer", "inpatient", "severe")
+
+proportions_date <- ggplot(plotdf, aes(x=date)) +
+  geom_bar(position = "fill", aes(color=color, fill=color)) +
+  geom_vline(xintercept = as.Date("2020-03-09"), linetype=2) +
+  geom_vline(xintercept = as.Date("2020-04-02"), linetype=2) +
+  scale_fill_manual(values=c('#DCDCDC', '#DCDCDC', '#6DC1B3', '#F6C445')) +
+  scale_color_manual(values=c('#DCDCDC', '#DCDCDC', '#6DC1B3', '#F6C445')) +
+  theme_minimal() +
+  ylab("Proportion") +
+  xlab("Date") +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1),
+        legend.position = "none") +
+  facet_grid(clade ~ variable, labeller = labeller(variable = var.labs))
+proportions_date
+```
