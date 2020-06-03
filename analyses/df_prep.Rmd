@@ -1,0 +1,231 @@
+---
+title: "Prepping WA data D614G analysis"
+author: "Cassia Wagner"
+date: "6/1/2020"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(dev="CairoPNG")
+options(bitmapType = 'cairo')
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+#### Load data
+```{r}
+sfs_df <- read_tsv(file = '../results/df_SFS_20200513.tsv')
+uw_df <- read_tsv(file = '../results/df_UW_2020-05-12.tsv')
+clinical_df <- read_tsv(file = '../data/20200502_UW_chart_clean.tsv')
+early_uw_df <- read_tsv(file = '../results/df_2020-05-02_UW.tsv')
+symptoms_df <- read_tsv(file = '../data/sfs_symptoms_2020-05-26.tsv')
+```
+
+#### Data prep
+
+Remove observations outside of Washington
+```{r}
+early_uw_df <- early_uw_df %>%
+  filter(division == "Washington")
+uw_df <- uw_df %>%
+  filter(division == "Washington")
+```
+
+Pre-merge data cleanup
+```{r}
+early_uw_df <- early_uw_df %>%
+  mutate(age = replace(age, age == "unknown", NA))
+
+early_uw_df$age <- as.numeric(early_uw_df$age)
+
+sfs_df <- sfs_df %>%
+  mutate(county = str_remove(location, "County")) %>%
+  mutate(age_bin = str_replace(age_bin, "0-9", "under 10"))
+
+clinical_df <- clinical_df %>%
+  select(-X10)
+
+symptoms_df <- symptoms_df %>%
+  mutate(sex = replace(sex, sex == "male", "M")) %>%
+  mutate(sex = replace(sex, sex == "female", "F"))
+```
+
+Are date from Pavitra & date from GISAID the same?
+```{r}
+uw_df$date_y <- as.Date(uw_df$date_y)
+uw_df$date_x <- as.Date(uw_df$date_x)
+early_uw_df$date_x <- as.Date(early_uw_df$date_x)
+early_uw_df$date_y <- as.Date(early_uw_df$date_y)
+```
+```{r}
+uw_df %>% 
+  mutate(compare_dates = if_else(date_x == date_y, 1, 0)) %>%
+  filter(is.na(compare_dates) | compare_dates == 0) %>%
+  select(strain, date_x, date_y, division, clade, pat_num)
+```
+```{r}
+early_uw_df %>% 
+  mutate(compare_dates = if_else(date_x == date_y, 1, 0)) %>%
+  filter(is.na(compare_dates) | compare_dates == 0) %>%
+  select(strain, date_x, date_y, division, clade, pat_num)
+```
+Pavitra said to the use date from her. The GISAID date is not correct.
+```{r}
+early_uw_df <- early_uw_df %>%
+  mutate(date = coalesce(date_x, date_y)) %>%
+  select(-date_x, -date_y)
+
+uw_df <- uw_df %>%
+  mutate(date = coalesce(date_x, date_y)) %>%
+  select(-date_x, -date_y)
+```
+
+
+#### Merging together early_uw_df & uw_df
+
+What variables will not merge easily?
+```{r}
+early_uw_df %>%
+  anti_join(uw_df, by = c("strain", "source", "clade", "division", "pat_num", "date"))
+uw_df %>%
+  anti_join(early_uw_df, by = c("strain", "source", "clade", "division", "pat_num", "date"))
+```
+```{r}
+uw_df %>%
+  anti_join(early_uw_df, by = c("strain", "source", "clade", "division", "pat_num", "date", "age_bin"))
+```
+I will choose to use age from early_uw_df. For "UW366," which I was able to verify using patient number, the earlier date was correct.
+
+```{r}
+uw_df %>%
+  anti_join(early_uw_df, by = c("strain", "source", "clade", "division", "pat_num", "date", "avg_ct"))
+```
+avg_ct is essentially all the same; there's just differences due to rounding differences. I'll take Pavitra's averages.
+
+
+Merging the dataframes
+```{r}
+df <- early_uw_df %>%
+  full_join(uw_df, by = c("strain", "source", "clade", "division", "pat_num", "date")) %>%
+  mutate(age = coalesce(age.x, age.y)) %>%
+  mutate(age_bin = coalesce(age_bin.x, age_bin.y)) %>%
+  mutate(avg_ct = coalesce(avg_ct.y, avg_ct.x)) %>%
+  mutate(ct_vals = coalesce(ct_vals.y, ct_vals.x)) %>%
+  select(-age_bin.x, -age_bin.y, -age.x, -age.y, -avg_ct.y, -avg_ct.x, -ct_vals.y, -ct_vals.x)
+```
+
+Adding in primer sets:
+```{r}
+primers <- str_split(df$ct_vals, "\\|", simplify = TRUE) %>%
+  as.tibble() %>%
+  mutate(primers = ifelse(V1 != "" & V2 != "","Egene, RdRp", NA)) %>%
+  mutate(primers = replace(primers, V6 != "" & V7 != "", "N1, N2")) %>%
+  mutate(primers = replace(primers, V5 != "", "ORF1ab")) %>%
+  mutate(primers = replace(primers, V5 != "" & V6 != "" & V7 != "", "multiple")) %>%
+  mutate(V6 = as.numeric(V6)) %>%
+  mutate(V7 = as.numeric(V7))
+
+df <- bind_cols(df, primers)
+```
+Replacing multiple with "N1, N2" since we'll use "N1, N2" in later analysis.
+```{r}
+df <- df %>%
+  mutate(avg_ct_multiple = (V6+V7)/2) %>%
+  mutate(avg_ct = replace(avg_ct, primers == "multiple", avg_ct_multiple[primers == "multiple"])) %>%
+  mutate(primers = replace(primers, primers == "multiple", "N1, N2")) %>%
+  select(-avg_ct_multiple)
+```
+```{r}
+summary(df$avg_ct)
+```
+
+
+
+
+#### Merging in clinical data
+
+Do all samples with patient number have an entry in clinical_df?
+```{r}
+df %>%
+  filter(!is.na(pat_num)) %>%
+  anti_join(clinical_df, by = c("strain", "date"))
+```
+Note: Both USA/WA-UW375/2020 & USA/WA-UW-1697/2020 are duplicates and the patient already has a record of them. For the other one, the clade is unknown,so it'll be dropped later in the analysis.
+
+When I merge df & clinical_df together, what rows will not merge?
+```{r}
+anti_join(clinical_df, df, by = c("strain", "date"))
+```
+
+
+```{r}
+df <- df %>%
+  left_join(clinical_df, by = c("strain", "date")) %>%
+  mutate(age = coalesce(age.x, age.y)) %>%
+  mutate(age_bin = coalesce(age_bin.x, age_bin.y)) %>%
+  select(-age_bin.x, -age_bin.y, -age.x, -age.y)
+```
+
+
+#### Adding in SFS data
+```{r}
+df <- df %>%
+  rename(county = client_county) %>%
+  bind_rows(sfs_df)
+```
+```{r}
+anti_join(symptoms_df, df, by = "strain")
+```
+```{r}
+df <- df %>%
+  left_join(symptoms_df, by = "strain") %>%
+  mutate(sex = coalesce(sex.x, sex.y)) %>%
+  select(-sex.x, -sex.y)
+```
+
+
+#### Post-merge data cleanup
+
+```{r}
+df <- df %>%
+  select(-pat_num, -division, -location, -pat_state, -pat_zip, -client_state, -client_zip, -ct_vals, -age, -V1, -V2, -V3, -V4, -V5, -V6, -V7)
+```
+```{r}
+df <- df %>%
+  mutate(symptom_onset = replace(symptom_onset, symptom_onset < as.Date("2020-01-31"), NA))
+
+df$bin_age[df$age_bin == 'under 10'] <- 9 #better to be conservative
+df$bin_age[df$age_bin == '10-19'] <- 14.5
+df$bin_age[df$age_bin == '20-29'] <- 24.5
+df$bin_age[df$age_bin == '30-39'] <- 34.5
+df$bin_age[df$age_bin == '40-49'] <- 44.5
+df$bin_age[df$age_bin == '50-59'] <- 54.5
+df$bin_age[df$age_bin == '60-69'] <- 64.5
+df$bin_age[df$age_bin == '70-79'] <- 74.5
+df$bin_age[df$age_bin == '80-89'] <- 84.5
+df$bin_age[df$age_bin == '90+'] <- 91 #Better to be conservative
+```
+
+How's it looking?
+```{r}
+summary(df)
+```
+
+For which strains is clade missing?
+```{r}
+df$strain[is.na(df$clade)] 
+```
+Note: all strains with a missing clade are in ncov/config/exclude.txt, or are filtered out before alignment for other reasons (likely too short a genome?)
+```{r}
+df <- df %>%
+  drop_na(clade)
+```
+
+#### Data overview
+```{r}
+summary(df)
+```
+
+Saving dataset for analysis:
+```{r}
+write_tsv(df, "../data/WA_df.tsv")
+```
