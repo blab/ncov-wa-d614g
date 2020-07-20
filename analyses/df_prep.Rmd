@@ -201,7 +201,9 @@ df <- df %>%
 ```
 ```{r}
 df <- df %>%
-  mutate(symptom_onset = replace(symptom_onset, symptom_onset < as.Date("2020-01-31"), NA))
+  mutate(symptom_onset = replace(symptom_onset, symptom_onset < as.Date("2020-01-31"), NA)) %>%
+  mutate(primers = replace(primers, source == "SFS", "scan")) %>%
+  mutate(primers = replace(primers, source == "wadoh", "wadoh"))
 
 df$bin_age[df$age_bin == 'under 10'] <- 9 #better to be conservative
 df$bin_age[df$age_bin == '10-19'] <- 14.5
@@ -227,7 +229,8 @@ df$strain[is.na(df$clade)]
 Note: all strains with a missing clade are in ncov/config/exclude.txt, or are filtered out before alignment for other reasons (likely too short a genome?)
 ```{r}
 df <- df %>%
-  drop_na(clade)
+  drop_na(clade) %>%
+  filter(clade != "other")
 ```
 
 #### Data overview
