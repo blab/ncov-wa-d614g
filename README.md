@@ -2,7 +2,7 @@
 
 Cassia Wagner, Pavitra Roychoudhury, Chris D. Frazar, Jover Lee, Nicola F. Müller, Louise H. Moncla, James Hadfield, Emma B. Hodcroft,  Benjamin Pelle, Matthew Richardson, Caitlin Behrens, Meei-Li Huang, Patrick Mathias, Gregory Pepper, Lasata Shrestha, Hong Xie, Amin Addetia, Truong Nguyen, Victoria M Rachleff, Romesh Gautom, Geoff Melly, Brian Hiatt, Philip Dykema, Amanda Adler, Elisabeth Brandstetter, Peter D. Han, Kairsten Fay, Misja Ilcisin, Kirsten Lacombe, Thomas R. Sibley, Melissa Truong, Caitlin R. Wolf, Karen Cowgill, Stephanie Schrag, Jeff Duchin, Michael Boeckh, Janet A. Englund, Michael Famulare, Barry R. Lutz, Mark J. Rieder, Matthew Thompson, Richard A. Neher, Geoffrey S. Baird, Lea M. Starita, Helen Y. Chu, Jay Shendure, Scott Lindquist, Deborah A. Nickerson, Alexander L. Greninger, Keith R. Jerome, Trevor Bedford
 
-Updated: July 22, 2020
+Updated: July 23, 2020
 
 The previous version from May 8, 2020 is [available here](https://github.com/blab/ncov-D614G/blob/39f87ba09a8e9ad1789052039f8602a445364b9e/README.md).
 
