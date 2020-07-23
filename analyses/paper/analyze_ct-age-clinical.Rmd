@@ -82,7 +82,7 @@ clade_time <- df %>%
   scale_fill_manual(values=c('#6DC1B3', '#F6C445')) +
   scale_color_manual(values=c('#6DC1B3', '#F6C445')) +
   theme_minimal() +
-  theme(legend.position = c(0.9, 0.8)) +
+  theme(legend.position = c(0.1, 0.9)) +
   ylab("Count") +
   xlab("Date") +
   facet_grid(source ~., margins=TRUE, labeller = labeller(source=labels))
@@ -232,7 +232,7 @@ dotplot_age
 #### Age vs. Ct
 ```{r, fig.width=7}
 ct_age <- df%>%
-  filter(source == "UW" & primers == "N1, N2") %>%
+  filter(primers == "N1, N2" & !is.na(bin_age)) %>%
   ggplot(aes(x = bin_age, y = avg_ct)) +
   geom_point(aes(color=clade, fill=clade)) +
   scale_fill_manual(values=c('#6DC1B3', '#F6C445')) +
@@ -531,7 +531,10 @@ df %>%
 
 #### Linear model of Ct in patients affiliated with UW Medicine
 ```{r}
-lreg_ct_uwmed = glm(avg_ct ~ clade + sex + week + severe + bin_age + site + immuncompromised_cancer, data = df[df$primers == "N1, N2", ])
+#lreg_ct_uwmed = glm(avg_ct ~ clade + sex + week + severe + bin_age + site + immuncompromised_cancer, data = df[df$primers == "N1, N2", ])
+
+lreg_ct_uwmed = glm(avg_ct ~ clade + sex + week + severe + bin_age + site + immuncompromised_cancer + primers, data = df)
+
 summary(lreg_ct_uwmed)
 
 df$residuals_ct_uwmed[!is.na(df$bin_age) & !is.na(df$deceased) & df$primers == "N1, N2"] = residuals(lreg_ct_uwmed)
@@ -550,6 +553,20 @@ p2_ct_uwmed <- df %>%
                 args = list(mean = 0, sd = sd(df$ residuals_ct_uwmed[!is.na(df$residuals_ct_uwmed)])))
 
 gridExtra::grid.arrange(p1_ct_uwmed, p2_ct_uwmed, ncol=2)
+```
+
+```{r}
+lreg_summary_uwmed <- tibble("Variable" = c("Intercept", "614G", "Male", "Age", "Week", "Immuncomp. or\nactive cancer", "Hospitalized", "Critical care\nor deceased", "Egene, RdRp primers", "ORF1ab primers"), 
+                       "Coeff. est." = c("15.87", "-1.15", "1.13", "0.013", "0.34",  "-0.10", "0.70", "-0.46", "2.96", "-0.35"), 
+                       "Std. Error" = c("1.38", "0.53", "0.47", "0.013", "0.26", "0.76", "0.72", "0.99", "3.07", "0.66"),
+                       "p-value" = c("<2e-16***", "0.033*", "0.017*", "0.30", "0.19", "0.89", "0.33", "0.65", "0.34", "0.59"))
+
+
+table_uwmed <- ggtexttable(lreg_summary_uwmed, rows = NULL, 
+                     theme = ttheme("lBlack", padding = unit(c(4, 3), "mm"), colnames.style = colnames_style(fill = "white", hjust=0, x =0.05, size=10), 
+                                    tbody.style = tbody_style(fill = "white", hjust=0, x =0.05, size=10))) 
+
+table_uwmed
 ```
 
 #### Is their a difference in sex by clade?
