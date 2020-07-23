@@ -11,7 +11,7 @@ The previous version from May 8, 2020 is [available here](https://github.com/bla
 Since its introduction into humans around the end of November or early December, SARS-CoV-2 has rapidly spread worldwide, wreaking havoc in the lives of many.
 As the virus replicates, it has fixed mutations at a rate similar to other known RNA viruses (data from Nextstrain).
 So far, there is only evidence for one major substitution in the viral spike protein.
-As shown in the screenshot from [Nextstrain](https://nextstrain.org/ncov/global/2020-05-01?c=gt-S_614) below, this substitution, D614G, has arisen multiple times.
+As shown in the screenshot from [Nextstrain](https://nextstrain.org/ncov/global/?c=gt-S_614) below, this substitution, D614G, has arisen multiple times.
 It initially appeared in viruses circulating in Europe but has since spread and is present in viruses in every region of the world.
 
 <br>
@@ -47,7 +47,7 @@ In WA-DoH samples, the clades were more evenly distributed over time (Fig. 1).
   </figcaption>
 </figure>
 
-<br>
+<br><br>
 
 We hypothesized that if D614G functionally improved virus replication, patients infected with 614G virus would have increased viral loads.
 Using cycle threshold (Ct) from polymerase chain reaction (PCR) assays as a measurement of viral load, we found that patients with clade D viruses had an average higher Ct than patients with clade G viruses.
@@ -68,7 +68,7 @@ Note: Age was reported in a decade bin and converted to a continuous variable fo
   </figcaption>
 </figure>
 
-<br>
+<br><br>
 
 The lower age of infected patients with 614G virus could be due to increased viral load, resulting in more productive infections and more cases in younger, typically healthier individuals.
 Age differences could also be caused by increased testing, resulting in detection of less severe, younger cases later in the outbreak when 614G was more prevalent (Fig. 1).
@@ -118,12 +118,12 @@ However, the analysis did help validate that a lower Ct was observed with viruse
 
 <figure>
 	<a id="fig:age-ct-clade-clinical"></a>
-	<img style="width:70%;" src="figures/clinical_ct-age-glm.png" alt="">
+	<img width="50%"; src="figures/clinical_ct-age-glm.png" alt="">
   <figcaption>Figure 3: Average Ct, age, and clade for patients in UW Medicine Network. (A) Comparison of Ct for UW Medicine affiliated patients and other samples sequenced by UW Virology. (B) Comparison of Ct across Spike D614G in patients at UW Medicine affiliates. (C)  Comparison of patient age at UW Medicine affiliates between 614D & 614G clade. Dots represent the mean and bars show two standard deviations from the mean. Age was reported in a decade bin vertically jittered for visualization,. (D) GLM of Ct in patients at UW Medicine affiliates.
   </figcaption>
 </figure>
 
-<br>
+<br><br>
 
 We next investigated what factors impact clinical outcome most.
 We grouped cases as either inpatient or outpatient and performed a multivariate logistic regression with hospitalization status as the outcome.
@@ -142,7 +142,7 @@ After controlling for multiple hypothesis testing using a Bonferroni correction,
   </figcaption>
 </figure>
 
-<br>
+<br><br>
 
 These results taken together find no evidence of a difference in clinical severity of COVID-19 due to the Spike D614G substitution in SARS-CoV-2.
 Given the small sample size of our dataset however, this does not preclude the possibility that others may find a clinical difference in subsequent studies.
