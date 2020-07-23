@@ -5,6 +5,7 @@ Cassia Wagner, Pavitra Roychoudhury, Chris D. Frazar, Jover Lee, Nicola F. Müll
 Updated: July 22, 2020
 
 The previous version from May 8, 2020 is [available here](https://github.com/blab/ncov-D614G/blob/39f87ba09a8e9ad1789052039f8602a445364b9e/README.md).
+
 -------------------------------------------
 
 Since its introduction into humans around the end of November or early December, SARS-CoV-2 has rapidly spread worldwide, wreaking havoc in the lives of many.
@@ -41,12 +42,12 @@ In WA-DoH samples, the clades were more evenly distributed over time (Fig. 1).
 
 <figure>
 	<a id="fig:clade-time"></a>
-	<img style="width:90%;" src="figures/clade-time.png" alt="">
+	<img style="width:70%;" src="figures/clade-time.png" alt="">
   <figcaption>Figure 1: SARS-CoV-2 samples in Washington from Feb. 20, 2020 to April 29, 2020 Samples are classified into clades D or G according to amino acid at position 614 in the spike protein.
   </figcaption>
 </figure>
 
-<br><br>
+<br>
 
 We hypothesized that if D614G functionally improved virus replication, patients infected with 614G virus would have increased viral loads.
 Using cycle threshold (Ct) from polymerase chain reaction (PCR) assays as a measurement of viral load, we found that patients with clade D viruses had an average higher Ct than patients with clade G viruses.
@@ -62,10 +63,12 @@ Note: Age was reported in a decade bin and converted to a continuous variable fo
 
 <figure>
 	<a id="fig:clade-ct"></a>
-	<img style="width:90%;" src="figures/ct-age-glm.png" alt="">
+	<img style="width:80%;" src="figures/ct-age-glm.png" alt="">
   <figcaption>Figure 2: Cycle threshold (Ct) and viral clade. (A) Comparison between Ct values for viruses from 614D & 614G clade, (B) Comparison of patient age between 614D & 614G clade. Dots represent the mean and bars show two standard deviations from the mean. Age was reported in a decade bin vertically jittered for visualization. (C) GLM analysis of Ct values using different potential predictors.
   </figcaption>
 </figure>
+
+<br>
 
 The lower age of infected patients with 614G virus could be due to increased viral load, resulting in more productive infections and more cases in younger, typically healthier individuals.
 Age differences could also be caused by increased testing, resulting in detection of less severe, younger cases later in the outbreak when 614G was more prevalent (Fig. 1).
@@ -115,12 +118,12 @@ However, the analysis did help validate that a lower Ct was observed with viruse
 
 <figure>
 	<a id="fig:age-ct-clade-clinical"></a>
-	<img style="width:50%;" src="figures/clinical_ct-age-glm.png" alt="">
+	<img style="width:70%;" src="figures/clinical_ct-age-glm.png" alt="">
   <figcaption>Figure 3: Average Ct, age, and clade for patients in UW Medicine Network. (A) Comparison of Ct for UW Medicine affiliated patients and other samples sequenced by UW Virology. (B) Comparison of Ct across Spike D614G in patients at UW Medicine affiliates. (C)  Comparison of patient age at UW Medicine affiliates between 614D & 614G clade. Dots represent the mean and bars show two standard deviations from the mean. Age was reported in a decade bin vertically jittered for visualization,. (D) GLM of Ct in patients at UW Medicine affiliates.
   </figcaption>
 </figure>
 
-<br><br>
+<br>
 
 We next investigated what factors impact clinical outcome most.
 We grouped cases as either inpatient or outpatient and performed a multivariate logistic regression with hospitalization status as the outcome.
@@ -133,13 +136,13 @@ After controlling for multiple hypothesis testing using a Bonferroni correction,
 
 <figure>
 	<a id="fig:age-ct-clade-clinical"></a>
-	<img style="width:50%;" src="figures/hospitalization-clades.png" alt="">
+	<img style="width:250;" src="figures/hospitalization-clades.png" alt="">
   <figcaption>Figure 4: Viral clade and clinical outcome. (A) Odds ratios of being hospitalized given being infected with SARS-CoV-2. (B) Proportion of viruses in 614D and 614G clades grouped by sex, immunocompromised status, hospitalization, and severe outcome (requiring critical care or death). Proportion was calculated as the mean of a binary clade variable; error bars show standard error of the mean.
 
   </figcaption>
 </figure>
 
-<br><br>
+<br>
 
 These results taken together find no evidence of a difference in clinical severity of COVID-19 due to the Spike D614G substitution in SARS-CoV-2.
 Given the small sample size of our dataset however, this does not preclude the possibility that others may find a clinical difference in subsequent studies.
