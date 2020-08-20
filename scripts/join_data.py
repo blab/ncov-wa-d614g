@@ -40,7 +40,7 @@ def add_metadata(df, metadata):
     Adds metadata from ncov build to df.
     '''
     meta = pd.read_csv(metadata, sep = '\t')
-    df = df.merge(meta[['strain', 'date', 'division', 'location']], how = 'left', left_index = True, right_on = 'strain', validate = "1:1")
+    df = df.merge(meta[['strain', 'date', 'division', 'location']], how = 'left', left_index = True, right_on = 'strain')
     df = df.set_index('strain')
     return df
 

@@ -1,7 +1,7 @@
 ---
-title: "SFS-UW_2020-05-13"
+title: "Analysis of D614G substitution on Ct and clinical outcomes in WA"
 author: "Cassia Wagner"
-date: "5/15/2020"
+date: "08/18/2020"
 output: html_document
 ---
 
@@ -16,7 +16,7 @@ library(ggpubr)
 ```
 #### Load data:
 ```{r}
-df <- read_tsv("../data/WA_df.tsv")
+df <- read_tsv("../data/WA_df.tsv", col_types = list("c", "c", "c", "D", "c", "d", "c", "c", "c", "c", "c", "c", "D", "c", "c", "d", "c", "d"))
 ```
 ```{r}
 summary(df)
@@ -24,7 +24,7 @@ summary(df)
 
 #### Data prep for analysis:
 ```{r}
-df$primers <- factor(df$primers, levels = c("N1, N2", "ORF1ab", "Egene, RdRp", "wadoh", "scan"))
+df$primers <- factor(df$primers, levels = c("N1, N2", "ORF1ab", "Egene, RdRp", "cobas", "wadoh", "scan"))
 df$source <- factor(df$source, levels = c("UW", "wadoh", "SFS"))
 df$clade <- factor(df$clade, levels = c("D", "G"))
 df$county <- factor(df$county)
@@ -32,7 +32,7 @@ df$sex <- factor(df$sex)
 df$deceased <- factor(df$deceased, levels = c("yes", "no"))
 df$site <- factor(df$site, levels = c("outpatient", "inpatient"))
 df$critical_care <- factor(df$critical_care)
-df$immuncompromised_cancer <- factor(df$immuncompromised_cancer)
+df$immunocompromised_cancer <- factor(df$immunocompromised_cancer)
 df$age_bin = factor(df$age_bin, levels = c("under 10", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80-89", "90+"), ordered = TRUE)
 df <- df %>%
   mutate(severe = ifelse(critical_care == "yes" | deceased == "yes", "yes", "no")) %>%
@@ -69,7 +69,7 @@ summary(df[df$source == "wadoh",])
 ```
 
 ### CT, AGE, CLADE ANALYSIS
-Note: I'm going to split analysis by SFS, UW, WA-DoH sequences because these are two totally sample sets, collected for different reasons and PCR amplifed in different labs. UW sequences are from samples ordered by a healthcare provider while SFS sequences are from people at-home who were not symptomatic enough to seek clinical care.
+Note: I'm going to split analysis by SFS, UW, WA-DoH sequences because these are two totally sample sets, collected for different reasons and PCR amplifed in different labs. UW sequences are from samples ordered by a healthcare provider while SFS sequences are from people at-home who were (mostly) not symptomatic enough to seek clinical care. WA-DoH sequences are from a variety of sources -- hospitals, contact tracing, etc.
 
 
 #### How are the clades spread over time?
@@ -88,7 +88,6 @@ clade_time <- df %>%
   facet_grid(source ~., margins=TRUE, labeller = labeller(source=labels))
 clade_time
 ```
-
 
 #### How are UW Virology primers spread over time?
 ```{r, echo=FALSE, fig.height=4, fig.width=8}
@@ -115,24 +114,8 @@ dotplot_ct_primer <- df %>%
   geom_signif(comparisons = list(c("Egene, RdRp", "N1, N2"), c("N1, N2", "ORF1ab")), textsize = 3, test = "wilcox.test")
 dotplot_ct_primer
 ```
-For UW Virology samples, decided to use N1, N2 primers since they're the most abundant and present when D614 & G614 virus are circulating.
 
-```{r, echo=FALSE, fig.height=4, fig.width=8}
-clade_time_n1n2 <- df %>%
-  filter(primers == "N1, N2") %>%
-  ggplot(aes(x=date, color=clade, fill=clade)) + 
-  geom_bar(position = position_stack()) + 
-  scale_fill_manual(values=c('#6DC1B3', '#F6C445')) +
-  scale_color_manual(values=c('#6DC1B3', '#F6C445')) +
-  theme_minimal() +
-  theme(legend.position = c(0.9, 0.8)) +
-  ylab("Count") +
-  xlab("Date") +
-  labs(subtitle = "Primer set: N1 & N2")
-clade_time_n1n2
-```
-
-
+For UW Virology samples, decided to focus on N1, N2 primers since they're the most abundant and the main primers used when D614 & G614 virus are circulating. However, I'll also include analysis with ORF1ab primers. There are not enough Egene, RdRp primers to do analysis with.
 
 #### Is there a difference in Ct by clade?
 For UW:
@@ -143,6 +126,15 @@ wilcox.test(formula = avg_ct ~ clade, data= df[df$source == "UW" & df$primers ==
 median(df$avg_ct[df$source == "UW" & df$primers == "N1, N2" & df$clade == "D"])
 median(df$avg_ct[df$source == "UW" & df$primers == "N1, N2" & df$clade == "G"])
 ```
+
+```{r}
+t.test(df$avg_ct[df$source == "UW" & df$primers == "ORF1ab"]~df$clade[df$source == "UW" & df$primers == "ORF1ab"])
+wilcox.test(formula = avg_ct ~ clade, data= df[df$source == "UW" & df$primers == "ORF1ab", ], alternative = "two.sided")
+
+median(df$avg_ct[df$source == "UW" & df$primers == "N1, N2" & df$clade == "D"])
+median(df$avg_ct[df$source == "UW" & df$primers == "N1, N2" & df$clade == "G"])
+```
+
 For SFS:
 ```{r}
 t.test(df$avg_ct[df$source == "SFS"]~df$clade[df$source == "SFS"])
@@ -165,7 +157,7 @@ median(df$avg_ct[df$source == "wadoh" & df$clade == "G"])
 dotplot_ct <- df %>%
   filter(primers == "N1, N2" | source == "SFS" | source == "wadoh") %>%
   ggplot(mapping = aes(x=clade, y=avg_ct)) + 
-  geom_dotplot(binaxis="y", stackdir="center", dotsize = 0.6, binwidth = 0.5, aes(color=clade, fill=clade)) +
+  geom_dotplot(binaxis="y", stackdir="center", dotsize = 0.6, binwidth = 0.5, stackratio=0.75, aes(color=clade, fill=clade)) +
   geom_boxplot(alpha=0, size=0.3) +
   scale_fill_manual(name = "Clade", labels = c("614D", "614G"), values=c('#6DC1B3', '#F6C445')) +
   scale_color_manual(name = "Clade", labels = c("614D", "614G"), values=c('#6DC1B3', '#F6C445')) +
@@ -181,6 +173,46 @@ dotplot_ct <- df %>%
 dotplot_ct
 ```
 
+```{r, fig.width=5}
+primer_ct <- df %>%
+  filter(source == "UW") %>%
+  ggplot(mapping = aes(x=clade, y=avg_ct)) + 
+  geom_dotplot(binaxis="y", stackdir="center", dotsize = 0.6, binwidth = 0.5, aes(color=clade, fill=clade)) +
+  geom_boxplot(alpha=0, size=0.3) +
+  scale_fill_manual(name = "Clade", labels = c("614D", "614G"), values=c('#6DC1B3', '#F6C445')) +
+  scale_color_manual(name = "Clade", labels = c("614D", "614G"), values=c('#6DC1B3', '#F6C445')) +
+  theme_minimal() +
+  theme(legend.position = c(0.5, -0.045), 
+        legend.direction = "horizontal",
+        axis.text.x = element_blank(),
+        panel.spacing = unit(-0.5, "lines")) +
+  ylab("Average Ct") +
+  xlab("") +
+  labs(subtitle = "All UW Virology samples") +
+  geom_signif(comparisons = list(c("D", "G")), textsize = 3, test="wilcox.test") +
+  facet_wrap(~ primers, labeller = labeller(source=labels))
+primer_ct
+```
+```{r, fig.width=5}
+orf1_ct <- df %>%
+  filter(primers == "ORF1ab") %>%
+  ggplot(mapping = aes(x=clade, y=avg_ct)) + 
+  geom_dotplot(binaxis="y", stackdir="center", dotsize = 0.6, binwidth = 0.5, aes(color=clade, fill=clade)) +
+  geom_boxplot(alpha=0, size=0.3) +
+  scale_fill_manual(name = "Clade", labels = c("614D", "614G"), values=c('#6DC1B3', '#F6C445')) +
+  scale_color_manual(name = "Clade", labels = c("614D", "614G"), values=c('#6DC1B3', '#F6C445')) +
+  theme_minimal() +
+  theme(legend.position = c(0.5, -0.045), 
+        legend.direction = "horizontal",
+        axis.text.x = element_blank(),
+        panel.spacing = unit(-0.5, "lines")) +
+  ylab("Average Ct") +
+  xlab("") +
+  geom_signif(comparisons = list(c("D", "G")), textsize = 3, test="wilcox.test") 
+orf1_ct
+```
+
+
 #### Is there a difference in age by clade?
 For UW:
 ```{r}
@@ -189,7 +221,7 @@ wilcox.test(formula = bin_age ~ clade, data= df[df$source == 'UW', ], alternativ
 ```
 For SFS:
 ```{r}
-t.test(df$bin_age[df$source == 'SFS']~df$clade[df$source == 'SFS'])
+t.test(df$bin_age[df$source == 'SFS'] ~ df$clade[df$source == 'SFS'])
 wilcox.test(formula = bin_age ~ clade, data= df[df$source == 'SFS', ], alternative = "two.sided")
 ```
 
@@ -226,7 +258,7 @@ dotplot_age <- df %>%
    facet_wrap(~ source, labeller = labeller(source=labels))
 dotplot_age
 ```
-
+Note: We not have age for WA-DOH samples.
 
 
 #### Age vs. Ct
@@ -279,7 +311,7 @@ ct_time
 #### Ct vs. symptom onset
 ```{r, fig.width=7}
 ct_sympon <- df %>%
-  filter(!is.na(post_symp)& post_symp <20) %>%
+  filter(!is.na(post_symp)) %>%
   ggplot(aes(x = post_symp, y = avg_ct)) +
   geom_point(aes(color=clade, fill=clade)) +
   scale_fill_manual(values=c('#6DC1B3', '#F6C445')) +
@@ -293,9 +325,7 @@ ct_sympon
 ```{r}
   cor.test(as.numeric(df$post_symp[df$post_symp >= 0 & df$post_symp < 20]), df$avg_ct[df$post_symp >= 0 & df$post_symp < 20], method = "pearson")
 
-  cor.test(as.numeric(df$post_symp[!is.na(df$post_symp)]), df$avg_ct[!is.na(df$post_symp)], method = "pearson")
 ```
-
 
 #### Linear model of Ct w/ UW
 ```{r}
@@ -315,23 +345,11 @@ p2_ct <- df %>%
   xlab("Residuals") +
   stat_function(fun = dnorm, 
                 colour = "red", 
-                args = list(mean = 0, sd = sd(df$ residuals_ct[!is.na(df$residuals_ct)])))
+                args = list(mean = 0, sd = sd(df$residuals_ct[!is.na(df$residuals_ct)])))
 
 gridExtra::grid.arrange(p1_ct, p2_ct, nrow=1)
 ```
-```{r}
-lreg_summary <- tibble("Variable" = c("Intercept", "614G", "Age", "Week", "Egene, RdRp primers", "ORF1ab primers"), 
-                       "Coeff. est." = c("20.22", "-1.06", "0.013", "-0.27", "2.51", "-0.29"), 
-                       "Std. Error" = c("0.67", "0.26", "0.0056", "0.13", "0.85", "0.35"),
-                       "p-value" = c("<2e-16***", "4.6e-05***", "0.025*", "0.035*", "0.0031**", "0.40"))
-
-
-table <- ggtexttable(lreg_summary, rows = NULL, 
-                     theme = ttheme("lBlack", padding = unit(c(4, 3), "mm"), colnames.style = colnames_style(fill = "white", hjust=0, x =0.05, size=10), 
-                                    tbody.style = tbody_style(fill = "white", hjust=0, x =0.05, size=10))) 
-
-table
-```
+It's probably not appropriate to just include primer type as separate predictors because these primers could have different intercepts and slopes. Therefore, I'll do it for N1, N2 primers and ORF1ab below.
 
 ```{r}
 lreg_ct_n1n2 <- glm(avg_ct ~ clade + bin_age + week, data = df[df$source == "UW" & df$primers == "N1, N2", ])
@@ -349,33 +367,79 @@ p2_ct_n1n2 <- df %>%
   geom_histogram(aes(y = ..density..), binwidth = 1) +
   stat_function(fun = dnorm, 
                 colour = "red", 
-                args = list(mean = 0, sd = sd(df$ residuals_ct[!is.na(df$residuals_ct)])))
+                args = list(mean = 0, sd = sd(df$residuals_ct_n1n2[!is.na(df$residuals_ct_n1n2)])))
 
 gridExtra::grid.arrange(p1_ct_n1n2, p2_ct_n1n2, nrow=1)
+
 ```
 
-#### Linear model of Ct with SCAN
+##### What would this change in Ct correspond to in viral load? 
+Pavitra's standard curve for N1, N2 does not include any samples with Ct less than 20 and our average Ct is lower than that. So the curve may not be linear with lower Ct. But if we were to assume the curve was linear with lower Ct, the slope for {log(viral load) = Ct(slope) + intercept} is -0.2995.
 ```{r}
-lreg_ct_sfs <- glm(avg_ct ~ clade + bin_age + week, data = df[df$source == "SFS", ])
-summary(lreg_ct_sfs)
+n1n2_slope = -0.2995
+log_viral_load = lreg_ct_n1n2$coefficients["cladeG"]*n1n2_slope
+log_viral_load
+se = summary(lreg_ct_n1n2)$coefficients[2, 2]
 
-df$residuals_ct_sfs[!is.na(df$age_bin) & df$source == "SFS"] = residuals(lreg_ct_sfs)
+upper_ci = (lreg_ct_n1n2$coefficients["cladeG"] + (1.96*se)) * n1n2_slope
+lower_ci = (lreg_ct_n1n2$coefficients["cladeG"] - (1.96*se)) * n1n2_slope
+upper_ci
+lower_ci
+```
 
-p1_ct <- cbind(Fitted = fitted(lreg_ct_sfs), Residuals=residuals(lreg_ct_sfs)) %>%
+
+```{r}
+lreg_summary <- tibble("Variable" = c("Intercept", "614G", "Age", "Week"), 
+                       "Coeff. est." = c("20.14", "-1.39", "0.0088", "-0.20"), 
+                       "Std. Error" = c("0.66", "0.26", "0.0058", "0.12"),
+                       "p-value" = c("<2e-16***", "9.7e-08***", "0.13", "0.092"))
+
+
+table <- ggtexttable(lreg_summary, rows = NULL, 
+                     theme = ttheme("lBlack", padding = unit(c(4, 3), "mm"), colnames.style = colnames_style(fill = "white", hjust=0, x =0.05, size=10), 
+                                    tbody.style = tbody_style(fill = "white", hjust=0, x =0.05, size=10))) 
+
+table
+```
+
+
+```{r}
+lreg_ct_orf1 <- glm(avg_ct ~ clade + bin_age + week, data = df[df$source == "UW" & df$primers == "ORF1ab", ])
+summary(lreg_ct_orf1)
+
+df$residuals_ct_orf1[!is.na(df$age_bin) & df$source == "UW" & df$primers == "ORF1ab"] = residuals(lreg_ct_orf1)
+
+p1_ct_orf1 <- cbind(Fitted = fitted(lreg_ct_orf1), Residuals=residuals(lreg_ct_orf1)) %>%
   as.data.frame() %>%
   ggplot(aes(x=Fitted, y=Residuals)) + geom_point()
 
-p2_ct <- df %>%
-  filter(!is.na(residuals_ct_sfs)) %>%
-  ggplot(aes(x=residuals_ct_sfs)) +
+p2_ct_orf1 <- df %>%
+  filter(!is.na(residuals_ct_orf1)) %>%
+  ggplot(aes(x=residuals_ct_orf1)) +
   geom_histogram(aes(y = ..density..), binwidth = 1) +
-  xlab("Residuals") +
   stat_function(fun = dnorm, 
                 colour = "red", 
-                args = list(mean = 0, sd = sd(df$ residuals_ct_sfs[!is.na(df$residuals_ct_sfs)])))
+                args = list(mean = 0, sd = sd(df$residuals_ct_orf1[!is.na(df$residuals_ct_orf1)])))
 
-gridExtra::grid.arrange(p1_ct, p2_ct, nrow=1)
+gridExtra::grid.arrange(p1_ct_orf1, p2_ct_orf1, nrow=1)
 ```
+Residual distribution does not look good here, which suggets that this GLM model is not appropriate with these primers.
+
+
+```{r}
+lreg_summary_orf1 <- tibble("Variable" = c("Intercept", "614G", "Age", "Week"), 
+                       "Coeff. est." = c("23.81", "-2.64", "0.031", "-0.39"), 
+                       "Std. Error" = c("2.71", "0.86", "0.018", "0.34"),
+                       "p-value" = c("3.8e-16***", "0.0025**", "0.092", "0.26"))
+
+
+table_orf1 <- ggtexttable(lreg_summary_orf1, rows = NULL, 
+                     theme = ttheme("lBlack", padding = unit(c(4, 3), "mm"), colnames.style = colnames_style(fill = "white", hjust=0, x =0.05, size=10), 
+                                    tbody.style = tbody_style(fill = "white", hjust=0, x =0.05, size=10))) 
+
+table_orf1
+```
+
 
 ### CLINICAL ANALYSIS
 ```{r}
@@ -448,7 +512,7 @@ median(df$avg_ct[!is.na(df$deceased) & df$primers == "N1, N2" & df$clade == "G"]
 dotplot_ct_uwmed <- df %>%
   filter(!is.na(deceased) & primers == "N1, N2") %>%
   ggplot(mapping = aes(x=clade, y=avg_ct)) + 
-  geom_dotplot(binaxis="y", stackdir="center", dotsize = 0.6, binwidth = 0.5, aes(color=clade, fill=clade)) +
+  geom_dotplot(binaxis="y", stackdir="center", dotsize = 1, binwidth = 0.5, aes(color=clade, fill=clade)) +
   geom_boxplot(alpha=0, size=0.3) +
   scale_fill_manual(name = "Clade", values=c('#6DC1B3', '#F6C445')) +
   scale_color_manual(name = "Clade",values=c('#6DC1B3', '#F6C445')) +
@@ -463,6 +527,27 @@ dotplot_ct_uwmed <- df %>%
 dotplot_ct_uwmed
 ```
 
+
+```{r, fig.width=5}
+primer_ct_clinic <- df %>%
+  filter(source == "UW" & !is.na(deceased)) %>%
+  ggplot(mapping = aes(x=clade, y=avg_ct)) + 
+  geom_dotplot(binaxis="y", stackdir="center", dotsize = 0.6, binwidth = 0.5, aes(color=clade, fill=clade)) +
+  geom_boxplot(alpha=0, size=0.3) +
+  scale_fill_manual(name = "Clade", labels = c("614D", "614G"), values=c('#6DC1B3', '#F6C445')) +
+  scale_color_manual(name = "Clade", labels = c("614D", "614G"), values=c('#6DC1B3', '#F6C445')) +
+  theme_minimal() +
+  theme(legend.position = c(0.5, -0.045), 
+        legend.direction = "horizontal",
+        axis.text.x = element_blank(),
+        panel.spacing = unit(-0.5, "lines")) +
+  ylab("Average Ct") +
+  xlab("") +
+  labs(subtitle = "Samples from Patients in UW Medicine network") +
+  geom_signif(comparisons = list(c("D", "G")), textsize = 3, test="wilcox.test") +
+  facet_wrap(~ primers, labeller = labeller(source=labels))
+primer_ct_clinic
+```
 
 #### Is their a difference in age between UW Medicine patients and other patients tested at UW Virology?
 ```{r}
@@ -480,7 +565,7 @@ dotplot_age_uwmed <- df %>%
   filter(!is.na(deceased)) %>%
   drop_na(bin_age, age_bin) %>%
   ggplot(mapping = aes(x=clade, y=bin_age), na.rm=TRUE) + 
-  geom_dotplot(aes( color=clade, fill=clade), binaxis="y", stackdir="center", stackratio = 0.8, dotsize = 1, position = position_jitter(width = 0, height=4)) + 
+  geom_dotplot(aes( color=clade, fill=clade), binaxis="y", stackdir="center", stackratio = 0.8, dotsize =0.8, position = position_jitter(width = 0, height=4)) + 
   scale_fill_manual(name = "Clade", values=c('#6DC1B3', '#F6C445')) +
   scale_color_manual(name = "Clade", values=c('#6DC1B3', '#F6C445')) +
   theme_minimal() +
@@ -515,7 +600,7 @@ df %>%
 
 df %>%
   filter(!is.na(deceased) & primers == "N1, N2") %>%
-  ggplot(aes(x = immuncompromised_cancer, y = avg_ct)) +
+  ggplot(aes(x = immunocompromised_cancer, y = avg_ct)) +
   geom_dotplot(binaxis="y", stackdir="center")
 
 df %>%
@@ -531,13 +616,52 @@ df %>%
 
 #### Linear model of Ct in patients affiliated with UW Medicine
 ```{r}
-#lreg_ct_uwmed = glm(avg_ct ~ clade + sex + week + severe + bin_age + site + immuncompromised_cancer, data = df[df$primers == "N1, N2", ])
+lreg_ct_uwmed_n1n2 = glm(avg_ct ~ clade + sex + bin_age + week + immunocompromised_cancer + site + severe, data = df[!is.na(df$deceased) & df$primers == "N1, N2", ])
 
-lreg_ct_uwmed = glm(avg_ct ~ clade + sex + week + severe + bin_age + site + immuncompromised_cancer + primers, data = df)
+summary(lreg_ct_uwmed_n1n2)
+
+df$residuals_ct_uwmed_n1n2[!is.na(df$bin_age) & !is.na(df$deceased) & df$primers == "N1, N2"] = residuals(lreg_ct_uwmed_n1n2)
+
+p1_ct_uwmed_n1n2 <- cbind(Fitted = fitted(lreg_ct_uwmed_n1n2),Residuals=residuals(lreg_ct_uwmed_n1n2)) %>%
+  as.data.frame() %>%
+  ggplot(aes(x=Fitted, y=Residuals)) + geom_point()
+
+p2_ct_uwmed_n1n2 <- df %>%
+  filter(!is.na(residuals_ct_uwmed_n1n2)) %>%
+  ggplot(aes(x=residuals_ct_uwmed_n1n2)) +
+  geom_histogram(aes(y = ..density..), binwidth = 1.5) +
+  xlab("Residuals") +
+  stat_function(fun = dnorm, 
+                colour = "red", 
+                args = list(mean = 0, sd = sd(df$residuals_ct_uwmed_n1n2[!is.na(df$residuals_ct_uwmed_n1n2)])))
+
+gridExtra::grid.arrange(p1_ct_uwmed_n1n2, p2_ct_uwmed_n1n2, ncol=2)
+```
+```{r}
+lreg_summary_clinical <- tibble("Variable" = c("Intercept", "614G","Male", "Age", "Week", "Immunocomp. or\nactive cancer", "Hospitalized", "Critical care\nor deceased"), 
+                       "Coeff. est." = c("16.00", "-1.35", "1.09", "0.012", "0.32", "-0.25", "1.22", "-0.65"), 
+                       "Std. Error" = c("1.45", "0.55", "0.48", "0.014", "0.27", "0.77", "0.77", "0.98"),
+                       "p-value" = c("<2e-16***", "0.014*", "0.024*", "0.36", "0.23", "0.74", "0.11", "0.51"))
+
+
+table_clinical <- ggtexttable(lreg_summary_clinical, rows = NULL, 
+                     theme = ttheme("lBlack", padding = unit(c(4, 3), "mm"), colnames.style = colnames_style(fill = "white", hjust=0, x =0.05, size=10), 
+                                    tbody.style = tbody_style(fill = "white", hjust=0, x =0.05, size=10))) 
+
+table_clinical
+```
+
+
+```{r}
+lreg_ct_uwmed = glm(avg_ct ~ clade + sex + week + severe + bin_age + site + immunocompromised_cancer, data = df[!is.na(df$deceased) & df$primers == "ORF1ab", ])
+
+#lreg_ct_uwmed = glm(avg_ct ~ clade + sex + week + severe + primers + site, data = df[!is.na(df$deceased), ])
 
 summary(lreg_ct_uwmed)
 
-df$residuals_ct_uwmed[!is.na(df$bin_age) & !is.na(df$deceased) & df$primers == "N1, N2"] = residuals(lreg_ct_uwmed)
+df$residuals_ct_uwmed[!is.na(df$bin_age) & !is.na(df$deceased) & df$primers == "ORF1ab"] = residuals(lreg_ct_uwmed)
+
+#df$residuals_ct_uwmed[!is.na(df$bin_age) & !is.na(df$deceased)] = residuals(lreg_ct_uwmed)
 
 p1_ct_uwmed <- cbind(Fitted = fitted(lreg_ct_uwmed),Residuals=residuals(lreg_ct_uwmed)) %>%
   as.data.frame() %>%
@@ -554,20 +678,8 @@ p2_ct_uwmed <- df %>%
 
 gridExtra::grid.arrange(p1_ct_uwmed, p2_ct_uwmed, ncol=2)
 ```
+Again, residuals are not normally distributed, so this glm is not a good model with these primers.
 
-```{r}
-lreg_summary_uwmed <- tibble("Variable" = c("Intercept", "614G", "Male", "Age", "Week", "Immuncomp. or\nactive cancer", "Hospitalized", "Critical care\nor deceased", "Egene, RdRp primers", "ORF1ab primers"), 
-                       "Coeff. est." = c("15.87", "-1.15", "1.13", "0.013", "0.34",  "-0.10", "0.70", "-0.46", "2.96", "-0.35"), 
-                       "Std. Error" = c("1.38", "0.53", "0.47", "0.013", "0.26", "0.76", "0.72", "0.99", "3.07", "0.66"),
-                       "p-value" = c("<2e-16***", "0.033*", "0.017*", "0.30", "0.19", "0.89", "0.33", "0.65", "0.34", "0.59"))
-
-
-table_uwmed <- ggtexttable(lreg_summary_uwmed, rows = NULL, 
-                     theme = ttheme("lBlack", padding = unit(c(4, 3), "mm"), colnames.style = colnames_style(fill = "white", hjust=0, x =0.05, size=10), 
-                                    tbody.style = tbody_style(fill = "white", hjust=0, x =0.05, size=10))) 
-
-table_uwmed
-```
 
 #### Is their a difference in sex by clade?
 ```{r, echo=FALSE}
@@ -577,8 +689,8 @@ chisq.test(df$sex, df$clade)
 
 #### Is there a difference in immunocompromised/cancer by clade?
 ```{r, echo=FALSE}
-table(df$immuncompromised_cancer, df$clade)
-chisq.test(df$immuncompromised_cancer, df$clade)
+table(df$immunocompromised_cancer, df$clade)
+chisq.test(df$immunocompromised_cancer, df$clade)
 ```
 
 #### Is there a difference in inpatient vs. outpatient across clade?
@@ -595,10 +707,11 @@ chisq.test(df$severe, df$clade)
 
 ### GLM of inpatient
 ```{r}
-lreg_site = glm(site ~ clade + sex + decade_age + immuncompromised_cancer + week + avg_ct, data = df, family = "binomial")
+lreg_site = glm(site ~ clade + sex + decade_age + immunocompromised_cancer + week + avg_ct, data = df[!is.na(df$deceased), ], family = "binomial")
 summary(lreg_site)
 
 df$residuals_site[!is.na(df$bin_age) & !is.na(df$deceased)] = residuals(lreg_site)
+
 
 p1_site_uwmed <- cbind(Fitted = fitted(lreg_site),Residuals=residuals(lreg_site)) %>%
   as.data.frame() %>%
@@ -644,8 +757,8 @@ plot_or <- or %>%
   xlab("") +
   ylab("Odds Ratio for hospitalization") +
   theme(legend.position = "none") +
-  scale_x_discrete(labels = c("cladeG" = "614G", "decade_age" = "Decade\nincrease in age",  "avg_ct" = "Average Ct", "week" = "Sample week", "sexM" = "Male", "immuncompromised_canceryes" = "Active cancer or\nimmunocompromised")) +
-  geom_text(vjust = 0, aes(label = c("", "", "***", "*", "", "")), size=8)
+  scale_x_discrete(labels = c("cladeG" = "614G", "decade_age" = "Decade\nincrease in age",  "avg_ct" = "Average Ct", "week" = "Week since start\nof epidemic", "sexM" = "Male", "immunocompromised_canceryes" = "Active cancer or\nimmunocompromised")) +
+  geom_text(vjust = 0, aes(label = c("", "", "***", "*", "", "**")), size=5)
 plot_or
   
 ```
@@ -656,7 +769,7 @@ plotdf<- df %>%
   filter(!is.na(deceased)) %>%
   mutate(female = ifelse(sex == "F", "yes", "no")) %>%
   mutate(inpatient = ifelse(site == "inpatient", "yes", "no")) %>%
-  pivot_longer(cols = c(female, immuncompromised_cancer, inpatient, severe), names_to = "variable") %>%
+  pivot_longer(cols = c(female, immunocompromised_cancer, inpatient, severe), names_to = "variable") %>%
   select(date, clade, variable, value) %>%
   filter(!is.na(variable)) %>%
   mutate(color = ifelse(clade == "D" & value == "yes", "yes.d", NA)) %>%
@@ -666,7 +779,7 @@ plotdf<- df %>%
 
 # New facet label names for variable
 var.labs <- c("Female", "Immuncompromised \nor active cancer", "Inpatient", "Critical care \n or deceased")
-names(var.labs) <- c("female", "immuncompromised_cancer", "inpatient", "severe")
+names(var.labs) <- c("female", "immunocompromised_cancer", "inpatient", "severe")
 
 proportions_date <- ggplot(plotdf, aes(x=date)) +
   geom_bar(position = "fill", aes(color=color, fill=color)) +
@@ -696,7 +809,7 @@ plot_clade <- df %>%
   filter(!is.na(deceased) & !is.na(severe)) %>%
   mutate(female = ifelse(sex == "F", "yes", "no")) %>%
   mutate(inpatient = ifelse(site == "inpatient", "yes", "no")) %>%
-  pivot_longer(cols = c(female, immuncompromised_cancer, inpatient, severe), names_to = "variable") %>%
+  pivot_longer(cols = c(female, immunocompromised_cancer, inpatient, severe), names_to = "variable") %>%
   mutate(binary_clade = ifelse(clade == "D", 1, 0)) %>%
   select(clade, variable, value, binary_clade)
 
@@ -717,7 +830,7 @@ errorbars
 
 # New facet label names for variable
 var.labs <- c("Female?", "Immunocomp.\nor\nactive cancer?", "Hospitalized?", "Critical care \n or deceased?")
-names(var.labs) <- c("female", "immuncompromised_cancer", "inpatient", "severe")
+names(var.labs) <- c("female", "immunocompromised_cancer", "inpatient", "severe")
 
 proportion_clade <- plot_clade %>%
   mutate(clade = factor(clade, levels = c("G", "D"))) %>%
@@ -736,8 +849,8 @@ proportion_clade <- plot_clade %>%
   theme(strip.placement = "outside", panel.spacing = unit(0.05, "lines"))
 proportion_clade
 ```
-```{r, fig.height=6, fig.width=8}
-fig_p1 <- ggarrange(dotplot_ct, plot_or, labels = c("A", "C"), nrow=2, ncol=1, font.label = list(size = 20, color = "black", face = "plain", family = NULL), heights=c(1.3,1))
+```{r, fig.height=6, fig.width=8.5}
+fig_p1 <- ggarrange(dotplot_ct, plot_or, labels = c("A", "C"), nrow=2, ncol=1, font.label = list(size = 20, color = "black", face = "plain", family = NULL), heights=c(1.4,1))
 fig_p2 <- ggarrange(table, proportion_clade, labels = c("B", "D"),nrow=2, heights=c(1,1.5), font.label = list(size = 20, color = "black", face = "plain", family = NULL), vjust=c(1.5,0))
 figure <- ggarrange(fig_p1, fig_p2, ncol=2, nrow=1, widths=c(1.1, 1))
 figure
@@ -746,4 +859,13 @@ figure
 ```{r, fig.height=3, fig.width=8}
 figure_supplemental <- ggarrange(dotplot_age, age_time, ncol=2, nrow=1, labels=c("A","B"), font.label = list(size = 20, color = "black", face = "plain", family = NULL))
 figure_supplemental
+```
+
+```{r, fig.height=3, fig.width=8}
+figure_supplemental_2 <- ggarrange(orf1_ct, table_orf1, ncol=1, nrow=2, labels=c("A","B"), heights = c(1.5,1), font.label = list(size = 18, color = "black", face = "plain", family = NULL))
+
+annotated <- annotate_figure(figure_supplemental_2,
+               top = text_grob("UW Virology: ORF1ab primers", face = "bold", size = 13))
+
+annotated
 ```

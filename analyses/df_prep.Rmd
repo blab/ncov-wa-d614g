@@ -1,7 +1,7 @@
 ---
 title: "Prepping WA data D614G analysis"
 author: "Cassia Wagner"
-date: "6/1/2020"
+date: "August 18, 2020"
 output: html_document
 ---
 ```{r setup, include=FALSE}
@@ -13,10 +13,12 @@ library(tidyverse)
 
 #### Load data
 ```{r}
-sfs_df <- read_tsv(file = '../results/df_SFS_20200513.tsv')
+sfs_df <- read_tsv(file = '../results/df_SFS_2020-08-18.tsv')
 uw_df <- read_tsv(file = '../results/df_UW_2020-05-12.tsv')
 clinical_df <- read_tsv(file = '../data/20200502_UW_chart_clean.tsv')
 early_uw_df <- read_tsv(file = '../results/df_2020-05-02_UW.tsv')
+late_uw_df <- read_tsv(file = '../data/df_uw_new_20200811.tsv')
+clinical_late <- read_tsv(file = '../data/uw_chartreview_20200811.tsv')
 symptoms_df <- read_tsv(file = '../data/sfs_symptoms_2020-05-26.tsv')
 wadoh_df <- read_tsv(file='../results/df_wadoh_2020-07-10.tsv')
 ```
@@ -38,20 +40,28 @@ early_uw_df <- early_uw_df %>%
 
 early_uw_df$age <- as.numeric(early_uw_df$age)
 
+late_uw_df <- late_uw_df %>%
+  mutate(source = str_replace(source, "uw", "UW")) %>%
+  rename(date = collection_date) %>%
+  drop_na(avg_ct)
+
 sfs_df <- sfs_df %>%
-  mutate(county = str_remove(location, "County")) %>%
-  mutate(age_bin = str_replace(age_bin, "0-9", "under 10"))
+  mutate(county = str_remove(location, " County"))
 
 clinical_df <- clinical_df %>%
-  select(-X10)
+  select(-X10) %>%
+  rename(immunocompromised_cancer = immuncompromised_cancer)
+
+clinical_late <- clinical_late %>%
+  select(-X11)
 
 symptoms_df <- symptoms_df %>%
   mutate(sex = replace(sex, sex == "male", "M")) %>%
   mutate(sex = replace(sex, sex == "female", "F"))
 
 wadoh_df <- wadoh_df %>%
-  mutate(county = str_remove(location, "County")) %>%
-  mutate(county = str_remove(county, "WA"))
+  mutate(county = str_remove(location, " County")) %>%
+  mutate(county = str_remove(county, " WA"))
 ```
 
 Are date from Pavitra & date from GISAID the same?
@@ -111,6 +121,7 @@ Merging the dataframes
 ```{r}
 df <- early_uw_df %>%
   full_join(uw_df, by = c("strain", "source", "clade", "division", "pat_num", "date")) %>%
+  rename(county = client_county) %>%
   mutate(age = coalesce(age.x, age.y)) %>%
   mutate(age_bin = coalesce(age_bin.x, age_bin.y)) %>%
   mutate(avg_ct = coalesce(avg_ct.y, avg_ct.x)) %>%
@@ -118,10 +129,11 @@ df <- early_uw_df %>%
   select(-age_bin.x, -age_bin.y, -age.x, -age.y, -avg_ct.y, -avg_ct.x, -ct_vals.y, -ct_vals.x)
 ```
 
+
 Adding in primer sets:
 ```{r}
 primers <- str_split(df$ct_vals, "\\|", simplify = TRUE) %>%
-  as.tibble() %>%
+  as_tibble() %>%
   mutate(primers = ifelse(V1 != "" & V2 != "","Egene, RdRp", NA)) %>%
   mutate(primers = replace(primers, V6 != "" & V7 != "", "N1, N2")) %>%
   mutate(primers = replace(primers, V5 != "", "ORF1ab")) %>%
@@ -143,38 +155,64 @@ df <- df %>%
 summary(df$avg_ct)
 ```
 
-
-
+Merging in late UW df:
+```{r}
+df <- df %>%
+  full_join(late_uw_df)
+```
+Adding in primers variable for late UW data:
+```{r}
+df <- df %>%
+  mutate(primers = replace(primers, EgeneCt != "" & RdRpCt != "","Egene, RdRp")) %>%
+  mutate(primers = replace(primers, N1 != "" & N2 != "", "N1, N2")) %>%
+  mutate(primers = replace(primers, orf1abCt != "", "ORF1ab")) %>%
+  mutate(primers = replace(primers, cobas1 != "" & cobas2 != "", "cobas")) %>%
+  mutate(primers = replace(primers, orf1abCt != "" & N1 != "" & N2 != "", "multiple"))
+```
+Replacing multiple from late_df with "N1, N2" since we'll use "N1, N2" in later analysis.
+```{r}
+df <- df %>%
+  mutate(avg_ct_multiple = (N1+N2)/2) %>%
+  mutate(avg_ct = replace(avg_ct, primers == "multiple", avg_ct_multiple[primers == "multiple"])) %>%
+  mutate(primers = replace(primers, primers == "multiple", "N1, N2")) %>%
+  select(-avg_ct_multiple)
+```
 
 #### Merging in clinical data
+
+Merging clinical dataframes together:
+```{r}
+clinical <- clinical_df %>%
+  full_join(clinical_late)
+```
+
 
 Do all samples with patient number have an entry in clinical_df?
 ```{r}
 df %>%
   filter(!is.na(pat_num)) %>%
-  anti_join(clinical_df, by = c("strain", "date"))
+  anti_join(clinical, by = c("strain", "date"))
 ```
 Note: Both USA/WA-UW375/2020 & USA/WA-UW-1697/2020 are duplicates and the patient already has a record of them. For the other one, the clade is unknown,so it'll be dropped later in the analysis.
 
 When I merge df & clinical_df together, what rows will not merge?
 ```{r}
-anti_join(clinical_df, df, by = c("strain", "date"))
+anti_join(clinical, df, by = c("strain", "date"))
 ```
 
 
 ```{r}
 df <- df %>%
-  left_join(clinical_df, by = c("strain", "date")) %>%
-  mutate(age = coalesce(age.x, age.y)) %>%
-  mutate(age_bin = coalesce(age_bin.x, age_bin.y)) %>%
-  select(-age_bin.x, -age_bin.y, -age.x, -age.y)
+  left_join(clinical, by = c("strain", "date")) %>%
+  mutate(pat_num = coalesce(pat_num.x, pat_num.y)) %>%
+  mutate(age = coalesce(age.y, age.x)) %>%
+  mutate(age_bin = coalesce(age_bin.y, age_bin.x)) %>%
+  select(-pat_num.x, -pat_num.y, -age_bin.x, -age_bin.y, -age.x, -age.y)
 ```
-
 
 #### Adding in SFS data
 ```{r}
 df <- df %>%
-  rename(county = client_county) %>%
   bind_rows(sfs_df)
 ```
 ```{r}
@@ -195,15 +233,48 @@ df <- df %>%
 
 #### Post-merge data cleanup
 
+Check for duplicates:
+```{r}
+df %>% 
+  group_by(strain) %>% 
+  filter(n()>1)
+```
+```{r}
+df <- distinct(df)
+```
+```{r}
+df %>% 
+  filter(pat_num != "") %>%
+  group_by(pat_num) %>% 
+  filter(n()>1) %>%
+  arrange(pat_num)
+```
+Will choose to keep the sample that came first.
 ```{r}
 df <- df %>%
-  select(-pat_num, -division, -location, -pat_state, -pat_zip, -client_state, -client_zip, -ct_vals, -age, -V1, -V2, -V3, -V4, -V5, -V6, -V7)
+  filter(strain != "USA/WA-UW375/2020") %>%
+  filter(strain != "USA/WA-UW-2526/2020") %>%
+  filter(strain != "USA/WA-UW-4690/2020") %>%
+  filter(strain != "USA/WA-UW-1697/2020") %>%
+  filter(strain != "USA/WA-UW-822/2020") %>%
+  filter(strain != "USA/WA-UW-4931/2020")
+```
+
+
+```{r}
+df <- df %>%
+  select(-pat_num, -division, -location, -pat_state, -pat_zip, -client_state, -client_zip, -ct_vals, -age, -V1, -V2, -V3, -V4, -V5, -V6, -V7, -EgeneCt, -RdRpCt, -orf1abCt, -cobas1, -cobas2, -N1, -N2)
 ```
 ```{r}
 df <- df %>%
   mutate(symptom_onset = replace(symptom_onset, symptom_onset < as.Date("2020-01-31"), NA)) %>%
   mutate(primers = replace(primers, source == "SFS", "scan")) %>%
-  mutate(primers = replace(primers, source == "wadoh", "wadoh"))
+  mutate(primers = replace(primers, source == "wadoh", "wadoh")) %>%
+  mutate(county = replace(county, county == "Unknown", NA))
+
+# Dropping any samples from May on:
+df <- df %>%
+  filter(date < as.Date("2020-05-01"))
 
 df$bin_age[df$age_bin == 'under 10'] <- 9 #better to be conservative
 df$bin_age[df$age_bin == '10-19'] <- 14.5
@@ -216,6 +287,7 @@ df$bin_age[df$age_bin == '70-79'] <- 74.5
 df$bin_age[df$age_bin == '80-89'] <- 84.5
 df$bin_age[df$age_bin == '90+'] <- 91 #Better to be conservative
 ```
+
 
 How's it looking?
 ```{r}
