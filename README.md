@@ -43,7 +43,7 @@ In WA-DoH samples, the clades were more evenly distributed over time (Fig. 1).
 <figure>
 	<a id="fig:clade-time"></a>
 	<img width="80%"; src="figures/clade-time.jpg" alt="">
-  <figcaption>**Figure 1: SARS-CoV-2 samples in Washington from Feb. 22, 2020 to April 29, 2020.** Samples are classified into clades D or G according to amino acid at position 614 in the Spike protein.
+  <figcaption>Figure 1: SARS-CoV-2 samples in Washington from Feb. 22, 2020 to April 29, 2020. Samples are classified into clades D or G according to amino acid at position 614 in the Spike protein.
   </figcaption>
 </figure>
 
@@ -64,7 +64,7 @@ Note: Age was reported in a decade bin and converted to a continuous variable fo
 <figure>
 	<a id="fig:clade-ct"></a>
 	<img width="80%"; src="figures/ct-age-glm.jpg" alt="">
-  <figcaption>**Figure 2: Cycle threshold (Ct) and viral clade.** (A) Comparison between Ct values for viruses from 614D & 614G clade, (B) Comparison of patient age between 614D & 614G clade. Dots represent the mean and bars show two standard deviations from the mean. Age was reported in a decade bin vertically jittered for visualization. (C) GLM analysis of Ct values using different potential predictors.
+  <figcaption>Figure 2: Cycle threshold (Ct) and viral clade. (A) Comparison between Ct values for viruses from 614D & 614G clade, (B) Comparison of patient age between 614D & 614G clade. Dots represent the mean and bars show two standard deviations from the mean. Age was reported in a decade bin vertically jittered for visualization. (C) GLM analysis of Ct values using different potential predictors.
   </figcaption>
 </figure>
 
