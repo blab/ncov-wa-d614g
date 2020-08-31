@@ -123,16 +123,22 @@ For UW:
 t.test(df$avg_ct[df$source == "UW" & df$primers == "N1, N2"]~df$clade[df$source == "UW" & df$primers == "N1, N2"])
 wilcox.test(formula = avg_ct ~ clade, data= df[df$source == "UW" & df$primers == "N1, N2", ], alternative = "two.sided")
 
-median(df$avg_ct[df$source == "UW" & df$primers == "N1, N2" & df$clade == "D"])
-median(df$avg_ct[df$source == "UW" & df$primers == "N1, N2" & df$clade == "G"])
+medD_n1n2 = median(df$avg_ct[df$source == "UW" & df$primers == "N1, N2" & df$clade == "D"])
+medG_n1n2 = median(df$avg_ct[df$source == "UW" & df$primers == "N1, N2" & df$clade == "G"])
+medD_n1n2
+medG_n1n2
+medD_n1n2 - medG_n1n2
 ```
 
 ```{r}
 t.test(df$avg_ct[df$source == "UW" & df$primers == "ORF1ab"]~df$clade[df$source == "UW" & df$primers == "ORF1ab"])
 wilcox.test(formula = avg_ct ~ clade, data= df[df$source == "UW" & df$primers == "ORF1ab", ], alternative = "two.sided")
 
-median(df$avg_ct[df$source == "UW" & df$primers == "N1, N2" & df$clade == "D"])
-median(df$avg_ct[df$source == "UW" & df$primers == "N1, N2" & df$clade == "G"])
+medD_orf1 = median(df$avg_ct[df$source == "UW" & df$primers == "ORF1ab" & df$clade == "D"])
+medD_orf1
+medG_orf1 = median(df$avg_ct[df$source == "UW" & df$primers == "ORF1ab" & df$clade == "G"])
+medG_orf1
+medD_orf1 - medG_orf1
 ```
 
 For SFS:
@@ -140,8 +146,11 @@ For SFS:
 t.test(df$avg_ct[df$source == "SFS"]~df$clade[df$source == "SFS"])
 wilcox.test(formula = avg_ct ~ clade, data= df[df$source == "SFS", ], alternative = "two.sided")
 
-median(df$avg_ct[df$source == "SFS" & df$clade == "D"])
-median(df$avg_ct[df$source == "SFS" & df$clade == "G"])
+medD_sfs = median(df$avg_ct[df$source == "SFS" & df$clade == "D"])
+medG_sfs = median(df$avg_ct[df$source == "SFS" & df$clade == "G"])
+medD_sfs
+medG_sfs
+medD_sfs -medG_sfs
 ```
 
 For WA-DoH:
@@ -149,8 +158,11 @@ For WA-DoH:
 t.test(df$avg_ct[df$source == "wadoh"]~df$clade[df$source == "wadoh"])
 wilcox.test(formula = avg_ct ~ clade, data= df[df$source == "wadoh", ], alternative = "two.sided")
 
-median(df$avg_ct[df$source == "wadoh" & df$clade == "D"])
-median(df$avg_ct[df$source == "wadoh" & df$clade == "G"])
+medD_wadoh = median(df$avg_ct[df$source == "wadoh" & df$clade == "D"])
+medG_wadoh = median(df$avg_ct[df$source == "wadoh" & df$clade == "G"])
+medD_wadoh
+medG_wadoh
+medD_wadoh - medG_wadoh
 ```
 
 ```{r, fig.width=5}
