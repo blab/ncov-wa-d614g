@@ -16,7 +16,7 @@ library(ggpubr)
 ```
 #### Load data:
 ```{r}
-df <- read_tsv("../data/WA_df.tsv", col_types = list("c", "c", "c", "D", "c", "d", "c", "c", "c", "c", "c", "c", "D", "c", "c", "d", "c", "d"))
+df <- read_tsv("../data/WA_df.tsv", col_types = list("c", "c", "c", "D", "c", "d", "c", "c", "c", "c", "c", "c", "D", "c", "d"))
 ```
 ```{r}
 summary(df)
@@ -38,8 +38,6 @@ df <- df %>%
   mutate(severe = ifelse(critical_care == "yes" | deceased == "yes", "yes", "no")) %>%
   mutate(severe = factor(severe)) %>%
   mutate(post_symp = date - symptom_onset) %>%
-  mutate(ct_norm = avg_ct/avg_rnase_p_crt) %>%
-  mutate(king = ifelse(county == "King", "yes", "no")) %>%
   mutate(decade_age = bin_age/10)
 
 df$week[df$date < as.Date("2020-02-25")] = 1

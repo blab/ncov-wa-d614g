@@ -263,7 +263,7 @@ df <- df %>%
 
 ```{r}
 df <- df %>%
-  select(-pat_num, -division, -location, -pat_state, -pat_zip, -client_state, -client_zip, -ct_vals, -age, -V1, -V2, -V3, -V4, -V5, -V6, -V7, -EgeneCt, -RdRpCt, -orf1abCt, -cobas1, -cobas2, -N1, -N2)
+  select(-pat_num, -division, -location, -pat_state, -pat_zip, -client_state, -client_zip, -ct_vals, -age, -V1, -V2, -V3, -V4, -V5, -V6, -V7, -EgeneCt, -RdRpCt, -orf1abCt, -cobas1, -cobas2, -N1, -N2, -avg_rnase_p_crt, -clinical_care, -symptoms)
 ```
 ```{r}
 df <- df %>%
