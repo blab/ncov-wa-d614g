@@ -337,6 +337,7 @@ ct_sympon
 
 ```
 
+
 #### Linear model of Ct w/ UW
 ```{r}
 lreg_ct <- glm(avg_ct ~ clade + bin_age + primers + week, data = df[df$source == "UW", ])
@@ -738,14 +739,14 @@ p2_site_uwmed <- df %>%
 
 gridExtra::grid.arrange(p1_site_uwmed, p2_site_uwmed, ncol=2)
 
-questionr::odds.ratio(lreg_site)
+questionr::odds.ratio(lreg_site, level=(1-(0.05/6)))
 
-or <- as.tibble(questionr::odds.ratio(lreg_site), rownames = "variable") 
+or <- as.tibble(questionr::odds.ratio(lreg_site, level=(1-(0.05/6))), rownames = "variable") 
 
 or <- or %>%
   mutate(prob = OR/(OR + 1)) %>%
-  rename(lower = "2.5 %") %>%
-  rename(upper = "97.5 %") %>%
+  rename(lower = "0.4 %") %>%
+  rename(upper = "99.6 %") %>%
   mutate(prob2.5 = lower/(lower + 1)) %>%
   mutate(prob97.5 = upper/(upper +1))
 
@@ -768,7 +769,7 @@ plot_or <- or %>%
   ylab("Odds Ratio for hospitalization") +
   theme(legend.position = "none") +
   scale_x_discrete(labels = c("cladeG" = "614G", "decade_age" = "Decade\nincrease in age",  "avg_ct" = "Average Ct", "week" = "Week since start\nof epidemic", "sexM" = "Male", "immunocompromised_canceryes" = "Active cancer or\nimmunocompromised")) +
-  geom_text(vjust = 0, aes(label = c("", "", "***", "*", "", "**")), size=5)
+  geom_text(vjust = 0, aes(label = c("", "", "***", "", "", "*")), size=5)
 plot_or
   
 ```
