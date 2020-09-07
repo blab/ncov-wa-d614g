@@ -721,6 +721,8 @@ chisq.test(df$severe, df$clade)
 lreg_site = glm(site ~ clade + sex + decade_age + immunocompromised_cancer + week + avg_ct, data = df[!is.na(df$deceased), ], family = "binomial")
 summary(lreg_site)
 
+p.adjust(summary(lreg_site)$coefficients[2:7,4], method = "bonferroni", n=6)
+
 df$residuals_site[!is.na(df$bin_age) & !is.na(df$deceased)] = residuals(lreg_site)
 
 
