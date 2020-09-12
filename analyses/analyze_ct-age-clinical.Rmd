@@ -77,8 +77,8 @@ labels <- c(UW = "UW\nVirology", wadoh = "WA-DoH", SFS = "SCAN", "(all)" = "All"
 clade_time <- df %>%
   ggplot(aes(x=date, color=clade, fill=clade)) + 
   geom_bar(position = position_stack()) + 
-  scale_fill_manual(values=c('#6DC1B3', '#F6C445')) +
-  scale_color_manual(values=c('#6DC1B3', '#F6C445')) +
+  scale_fill_manual(values=c('#0072B2', '#D55E00')) +
+  scale_color_manual(values=c('#0072B2', '#D55E00')) +
   theme_minimal() +
   theme(legend.position = c(0.1, 0.9)) +
   ylab("Count") +
@@ -169,8 +169,8 @@ dotplot_ct <- df %>%
   ggplot(mapping = aes(x=clade, y=avg_ct)) + 
   geom_dotplot(binaxis="y", stackdir="center", dotsize = 0.6, binwidth = 0.5, stackratio=0.75, aes(color=clade, fill=clade)) +
   geom_boxplot(alpha=0, size=0.3) +
-  scale_fill_manual(name = "Clade", labels = c("614D", "614G"), values=c('#6DC1B3', '#F6C445')) +
-  scale_color_manual(name = "Clade", labels = c("614D", "614G"), values=c('#6DC1B3', '#F6C445')) +
+  scale_fill_manual(name = "Clade", labels = c("614D", "614G"), values=c('#0072B2', '#D55E00')) +
+  scale_color_manual(name = "Clade", labels = c("614D", "614G"), values=c('#0072B2', '#D55E00')) +
   theme_minimal() +
   theme(legend.position = c(0.5, -0.045), 
         legend.direction = "horizontal",
@@ -189,8 +189,8 @@ primer_ct <- df %>%
   ggplot(mapping = aes(x=clade, y=avg_ct)) + 
   geom_dotplot(binaxis="y", stackdir="center", dotsize = 0.6, binwidth = 0.5, aes(color=clade, fill=clade)) +
   geom_boxplot(alpha=0, size=0.3) +
-  scale_fill_manual(name = "Clade", labels = c("614D", "614G"), values=c('#6DC1B3', '#F6C445')) +
-  scale_color_manual(name = "Clade", labels = c("614D", "614G"), values=c('#6DC1B3', '#F6C445')) +
+  scale_fill_manual(name = "Clade", labels = c("614D", "614G"), values=c('#0072B2', '#D55E00')) +
+  scale_color_manual(name = "Clade", labels = c("614D", "614G"), values=c('#0072B2', '#D55E00')) +
   theme_minimal() +
   theme(legend.position = c(0.5, -0.045), 
         legend.direction = "horizontal",
@@ -209,8 +209,8 @@ orf1_ct <- df %>%
   ggplot(mapping = aes(x=clade, y=avg_ct)) + 
   geom_dotplot(binaxis="y", stackdir="center", dotsize = 0.6, binwidth = 0.5, aes(color=clade, fill=clade)) +
   geom_boxplot(alpha=0, size=0.3) +
-  scale_fill_manual(name = "Clade", labels = c("614D", "614G"), values=c('#6DC1B3', '#F6C445')) +
-  scale_color_manual(name = "Clade", labels = c("614D", "614G"), values=c('#6DC1B3', '#F6C445')) +
+  scale_fill_manual(name = "Clade", labels = c("614D", "614G"), values=c('#0072B2', '#D55E00')) +
+  scale_color_manual(name = "Clade", labels = c("614D", "614G"), values=c('#0072B2', '#D55E00')) +
   theme_minimal() +
   theme(legend.position = c(0.5, -0.045), 
         legend.direction = "horizontal",
@@ -255,8 +255,8 @@ dotplot_age <- df %>%
   drop_na(bin_age, age_bin) %>%
   ggplot(mapping = aes(x=clade, y=bin_age), na.rm=TRUE) + 
   geom_dotplot(aes( color=clade, fill=clade), binaxis="y", stackdir="center", stackratio = 0.3, dotsize = 0.5, position = position_jitter(width = 0, height=4)) +
-  scale_fill_manual(name = "Clade", values=c('#6DC1B3', '#F6C445')) +
-  scale_color_manual(name = "Clade", values=c('#6DC1B3', '#F6C445')) +
+  scale_fill_manual(name = "Clade", values=c('#0072B2', '#D55E00')) +
+  scale_color_manual(name = "Clade", values=c('#0072B2', '#D55E00')) +
   theme_minimal() +
   theme(legend.position = c(0.5, -0.045), 
         legend.direction = "horizontal",
@@ -277,8 +277,8 @@ ct_age <- df%>%
   filter(primers == "N1, N2" & !is.na(bin_age)) %>%
   ggplot(aes(x = bin_age, y = avg_ct)) +
   geom_point(aes(color=clade, fill=clade)) +
-  scale_fill_manual(values=c('#6DC1B3', '#F6C445')) +
-  scale_color_manual(values=c('#6DC1B3', '#F6C445')) +
+  scale_fill_manual(values=c('#0072B2', '#D55E00')) +
+  scale_color_manual(values=c('#0072B2', '#D55E00')) +
   geom_smooth(colour = "black", size=0.5, method = "lm") +
   theme_minimal() +
   xlab("Age") +
@@ -292,8 +292,8 @@ age_time <- df %>%
   drop_na(age_bin) %>%
   ggplot(aes(x = date, y = bin_age)) +
   geom_point(aes(color=clade, fill=clade)) +
-  scale_fill_manual(values=c('#6DC1B3', '#F6C445')) +
-  scale_color_manual(values=c('#6DC1B3', '#F6C445')) +
+  scale_fill_manual(values=c('#0072B2', '#D55E00')) +
+  scale_color_manual(values=c('#0072B2', '#D55E00')) +
   theme_minimal() +
   geom_smooth(method="lm", col = "black", size=0.5) +
   xlab("Date") +
@@ -309,8 +309,8 @@ ct_time <- df %>%
   filter(primers == "N1, N2") %>%
   ggplot(aes(x = date, y = avg_ct)) +
   geom_point(aes(color=clade, fill=clade)) +
-  scale_fill_manual(values=c('#6DC1B3', '#F6C445')) +
-  scale_color_manual(values=c('#6DC1B3', '#F6C445')) +
+  scale_fill_manual(values=c('#0072B2', '#D55E00')) +
+  scale_color_manual(values=c('#0072B2', '#D55E00')) +
   theme_minimal() +
   geom_smooth(method="lm", col = "black", size=0.5) +
   xlab("Date") +
@@ -324,8 +324,8 @@ ct_sympon <- df %>%
   filter(!is.na(post_symp)) %>%
   ggplot(aes(x = post_symp, y = avg_ct)) +
   geom_point(aes(color=clade, fill=clade)) +
-  scale_fill_manual(values=c('#6DC1B3', '#F6C445')) +
-  scale_color_manual(values=c('#6DC1B3', '#F6C445')) +
+  scale_fill_manual(values=c('#0072B2', '#D55E00')) +
+  scale_color_manual(values=c('#0072B2', '#D55E00')) +
   theme_minimal() +
   geom_smooth(data = subset(df, post_symp >=0 & post_symp < 20),method = "lm", color = "black", size=0.5) +
   xlab("Days since symptoms started") +
@@ -463,8 +463,8 @@ clade_time_uwmed <- df %>%
   filter(!is.na(deceased)) %>%
   ggplot(aes(x=date, color=clade, fill=clade)) + 
   geom_bar(position = position_stack()) + 
-  scale_fill_manual(values=c('#6DC1B3', '#F6C445')) +
-  scale_color_manual(values=c('#6DC1B3', '#F6C445')) +
+  scale_fill_manual(values=c('#0072B2', '#D55E00')) +
+  scale_color_manual(values=c('#0072B2', '#D55E00')) +
   theme_minimal() +
   ylab("Count") +
   xlab("Date") +
@@ -525,8 +525,8 @@ dotplot_ct_uwmed <- df %>%
   ggplot(mapping = aes(x=clade, y=avg_ct)) + 
   geom_dotplot(binaxis="y", stackdir="center", dotsize = 1, binwidth = 0.5, aes(color=clade, fill=clade)) +
   geom_boxplot(alpha=0, size=0.3) +
-  scale_fill_manual(name = "Clade", values=c('#6DC1B3', '#F6C445')) +
-  scale_color_manual(name = "Clade",values=c('#6DC1B3', '#F6C445')) +
+  scale_fill_manual(name = "Clade", values=c('#0072B2', '#D55E00')) +
+  scale_color_manual(name = "Clade",values=c('#0072B2', '#D55E00')) +
   theme_minimal() +
   theme(legend.position = c(0.5, -0.045), 
         legend.direction = "horizontal",
@@ -545,8 +545,8 @@ primer_ct_clinic <- df %>%
   ggplot(mapping = aes(x=clade, y=avg_ct)) + 
   geom_dotplot(binaxis="y", stackdir="center", dotsize = 0.6, binwidth = 0.5, aes(color=clade, fill=clade)) +
   geom_boxplot(alpha=0, size=0.3) +
-  scale_fill_manual(name = "Clade", labels = c("614D", "614G"), values=c('#6DC1B3', '#F6C445')) +
-  scale_color_manual(name = "Clade", labels = c("614D", "614G"), values=c('#6DC1B3', '#F6C445')) +
+  scale_fill_manual(name = "Clade", labels = c("614D", "614G"), values=c('#0072B2', '#D55E00')) +
+  scale_color_manual(name = "Clade", labels = c("614D", "614G"), values=c('#0072B2', '#D55E00')) +
   theme_minimal() +
   theme(legend.position = c(0.5, -0.045), 
         legend.direction = "horizontal",
@@ -577,8 +577,8 @@ dotplot_age_uwmed <- df %>%
   drop_na(bin_age, age_bin) %>%
   ggplot(mapping = aes(x=clade, y=bin_age), na.rm=TRUE) + 
   geom_dotplot(aes( color=clade, fill=clade), binaxis="y", stackdir="center", stackratio = 0.8, dotsize =0.8, position = position_jitter(width = 0, height=4)) + 
-  scale_fill_manual(name = "Clade", values=c('#6DC1B3', '#F6C445')) +
-  scale_color_manual(name = "Clade", values=c('#6DC1B3', '#F6C445')) +
+  scale_fill_manual(name = "Clade", values=c('#0072B2', '#D55E00')) +
+  scale_color_manual(name = "Clade", values=c('#0072B2', '#D55E00')) +
   theme_minimal() +
   theme(legend.position = c(0.5, -0.045), 
         legend.direction = "horizontal",
@@ -755,7 +755,7 @@ or <- or %>%
 or
 ```
 ```{r}
-colors <- c("#0072B2", "#0072B2", "#0072B2", "#0072B2", "#0072B2", "#0072B2")
+colors <- c("#268457", "#268457", "#268457", "#268457", "#268457", "#268457")
 
 plot_or <- or %>%
   filter(variable!="(Intercept)") %>%
@@ -798,8 +798,8 @@ proportions_date <- ggplot(plotdf, aes(x=date)) +
   geom_bar(position = "fill", aes(color=color, fill=color)) +
   geom_vline(xintercept = as.Date("2020-03-09"), linetype=2) +
   geom_vline(xintercept = as.Date("2020-04-02"), linetype=2) +
-  scale_fill_manual(values=c('#DCDCDC', '#DCDCDC', '#6DC1B3', '#F6C445')) +
-  scale_color_manual(values=c('#DCDCDC', '#DCDCDC', '#6DC1B3', '#F6C445')) +
+  scale_fill_manual(values=c('#DCDCDC', '#DCDCDC', '#0072B2', '#D55E00')) +
+  scale_color_manual(values=c('#DCDCDC', '#DCDCDC', '#0072B2', '#D55E00')) +
   theme_minimal() +
   ylab("Proportion") +
   xlab("Date") +
@@ -851,8 +851,8 @@ proportion_clade <- plot_clade %>%
   ggplot(aes(x=value)) +
   geom_bar(position = "fill", aes(fill = clade, color = clade)) +
   geom_errorbar(data = errorbars, aes(x=value, ymin = lower, ymax = upper), width = 0.5) +
-  scale_fill_manual(name = "Clade", labels = c("614G", "614D"), values=c('#F6C445', '#6DC1B3')) +
-  scale_color_manual(name = "Clade", labels = c("614G", "614D"), values=c('#F6C445', '#6DC1B3')) +
+  scale_fill_manual(name = "Clade", labels = c("614G", "614D"), values=c('#D55E00', '#0072B2')) +
+  scale_color_manual(name = "Clade", labels = c("614G", "614D"), values=c('#D55E00', '#0072B2')) +
   theme_minimal() +
   ylab("Proportion") +
   xlab("") +
