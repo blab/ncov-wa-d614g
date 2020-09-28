@@ -291,11 +291,12 @@ ct_age
 age_time <- df %>%
   drop_na(age_bin) %>%
   ggplot(aes(x = date, y = bin_age)) +
-  geom_point(aes(color=clade, fill=clade)) +
+  geom_point(aes(color=clade, fill=clade), size=.5) +
   scale_fill_manual(values=c('#0072B2', '#D55E00')) +
   scale_color_manual(values=c('#0072B2', '#D55E00')) +
   theme_minimal() +
-  geom_smooth(method="lm", col = "black", size=0.5) +
+  geom_smooth(method="lm", col = "#0072B2", size=1, data = df[df$clade=="D",]) +
+  geom_smooth(method="lm", col = "#D55E00", size=1, data = df[df$clade=="G",]) +
   xlab("Date") +
   ylab("Age")
 age_time
@@ -450,6 +451,45 @@ table_orf1 <- ggtexttable(lreg_summary_orf1, rows = NULL,
 
 table_orf1
 ```
+#### Linear model of age w/ UW
+```{r}
+
+lreg_age <- glm(bin_age ~ clade + week, data = df)
+summary(lreg_age)
+
+df$residuals_age[!is.na(df$age_bin)] = residuals(lreg_age)
+
+p1_age <- cbind(Fitted = fitted(lreg_age), Residuals=residuals(lreg_age)) %>%
+  as.data.frame() %>%
+  ggplot(aes(x=Fitted, y=Residuals)) + geom_point()
+
+p2_age <- df %>%
+  filter(!is.na(residuals_age)) %>%
+  ggplot(aes(x=residuals_age)) +
+  geom_histogram(aes(y = ..density..), binwidth = 1) +
+  xlab("Residuals") +
+  stat_function(fun = dnorm, 
+                colour = "red", 
+                args = list(mean = 0, sd = sd(df$residuals_age[!is.na(df$residuals_age)])))
+
+gridExtra::grid.arrange(p1_ct, p2_ct, nrow=1)
+```
+```{r}
+lreg_summary_age <- tibble("Variable" = c("Intercept", "614G", "Week"), 
+                       "Coeff. est." = c("57.18", "-3.52", "-0.31"), 
+                       "Std. Error" = c("2.26", "1.32", "0.44"),
+                       "p-value" = c("<2e-16***", "0.0077**", "0.48"))
+
+
+table_age <- ggtexttable(lreg_summary_age, rows = NULL, 
+                     theme = ttheme("lBlack", padding = unit(c(4, 3), "mm"), colnames.style = colnames_style(fill = "white", hjust=0, x =0.05, size=10), 
+                                    tbody.style = tbody_style(fill = "white", hjust=0, x =0.05, size=10))) 
+
+table_age
+```
+
+
+
 
 
 ### CLINICAL ANALYSIS
@@ -869,8 +909,9 @@ figure <- ggarrange(fig_p1, fig_p2, ncol=2, nrow=1, widths=c(1.1, 1))
 figure
 ```
 
-```{r, fig.height=3, fig.width=8}
-figure_supplemental <- ggarrange(dotplot_age, age_time, ncol=2, nrow=1, labels=c("A","B"), font.label = list(size = 20, color = "black", face = "plain", family = NULL))
+```{r, fig.height=8, fig.width=6}
+
+figure_supplemental <- ggarrange(dotplot_age, age_time, table_age, ncol=1, nrow=3, labels=c("A","B", "C"), font.label = list(size = 20, color = "black", face = "plain", family = NULL), heights= c(1,1,.5))
 figure_supplemental
 ```
 
