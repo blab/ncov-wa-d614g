@@ -1,7 +1,7 @@
 ---
 title: "Analysis of D614G substitution on Ct and clinical outcomes in WA"
 author: "Cassia Wagner"
-date: "08/18/2020"
+date: "December 21, 2020"
 output: html_document
 ---
 
@@ -16,7 +16,7 @@ library(ggpubr)
 ```
 #### Load data:
 ```{r}
-df <- read_tsv("../data/WA_df.tsv", col_types = list("c", "c", "c", "D", "c", "d", "c", "c", "c", "c", "c", "c", "D", "c", "d"))
+df <- read_tsv("../data/WA_df.tsv", col_types = list("c", "f", "f", "f", "D", "f", "d", "f", "f", "f", "f", "f", "f", "f", "D", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "d"))
 ```
 ```{r}
 summary(df)
@@ -24,21 +24,13 @@ summary(df)
 
 #### Data prep for analysis:
 ```{r}
-df$primers <- factor(df$primers, levels = c("N1, N2", "ORF1ab", "Egene, RdRp", "cobas", "wadoh", "scan"))
-df$source <- factor(df$source, levels = c("UW", "wadoh", "SFS"))
-df$clade <- factor(df$clade, levels = c("D", "G"))
-df$county <- factor(df$county)
-df$sex <- factor(df$sex)
-df$deceased <- factor(df$deceased, levels = c("yes", "no"))
-df$site <- factor(df$site, levels = c("outpatient", "inpatient"))
-df$critical_care <- factor(df$critical_care)
-df$immunocompromised_cancer <- factor(df$immunocompromised_cancer)
-df$age_bin = factor(df$age_bin, levels = c("under 10", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80-89", "90+"), ordered = TRUE)
 df <- df %>%
   mutate(severe = ifelse(critical_care == "yes" | deceased == "yes", "yes", "no")) %>%
   mutate(severe = factor(severe)) %>%
   mutate(post_symp = date - symptom_onset) %>%
-  mutate(decade_age = bin_age/10)
+  mutate(decade_age = bin_age/10) %>%
+  mutate(sequencing = ifelse(source != "UW", "nwgc", "uw")) %>%
+  mutate(syn_muts = nt_muts - aa_muts)
 
 df$week[df$date < as.Date("2020-02-25")] = 1
 df$week[df$date < as.Date("2020-03-03") & df$date > as.Date("2020-02-24")] = 2
@@ -51,7 +43,6 @@ df$week[df$date < as.Date("2020-04-14") & df$date > as.Date("2020-04-06")] = 8
 df$week[df$date < as.Date("2020-04-21") & df$date > as.Date("2020-04-13")] = 9
 df$week[df$date < as.Date("2020-04-28") & df$date > as.Date("2020-04-20")] = 10
 df$week[df$date > as.Date("2020-04-27")] = 12
-
 ```
 ```{r}
 summary(df)
@@ -66,26 +57,34 @@ summary(df[df$source == "SFS",])
 summary(df[df$source == "wadoh",])
 ```
 
-### CT, AGE, CLADE ANALYSIS
-Note: I'm going to split analysis by SFS, UW, WA-DoH sequences because these are two totally sample sets, collected for different reasons and PCR amplifed in different labs. UW sequences are from samples ordered by a healthcare provider while SFS sequences are from people at-home who were (mostly) not symptomatic enough to seek clinical care. WA-DoH sequences are from a variety of sources -- hospitals, contact tracing, etc.
+### CT, AGE, SPIKE 614 ANALYSIS
+Note: I'm going to split analysis by SFS, UW, WA-DoH sequences because these are different sample sets, collected for different reasons and PCR amplifed in different labs. UW sequences are from samples ordered by a healthcare provider while SFS sequences are from people at-home who were (mostly) not symptomatic enough to seek clinical care. WA-DoH sequences are from a variety of sources -- hospitals, contact tracing, etc.
 
+#### Do different sequencing protocols result in different proportions of 614G vs. 614D?
+```{r}
+chisq.test(df$spike_614, df$sequencing)
+chisq.test(df$spike_614[df$source != "UW"], df$source[df$source != "UW"])
 
-#### How are the clades spread over time?
+summary(df[df$sequencing == "nwgc",])
+```
+
+#### How are the spike variants spread over time?
 ```{r, echo=FALSE, fig.height=4, fig.width=8}
-labels <- c(UW = "UW\nVirology", wadoh = "WA-DoH", SFS = "SCAN", "(all)" = "All")
+labels <- c(UW = "UW\nVirology", wadoh = "WA DOH", SFS = "SCAN", "(all)" = "All")
 
-clade_time <- df %>%
-  ggplot(aes(x=date, color=clade, fill=clade)) + 
+spike_614_time <- df %>%
+  ggplot(aes(x=date, color=spike_614, fill=spike_614)) + 
   geom_bar(position = position_stack()) + 
   scale_fill_manual(values=c('#0072B2', '#D55E00')) +
   scale_color_manual(values=c('#0072B2', '#D55E00')) +
   theme_minimal() +
-  theme(legend.position = c(0.1, 0.9)) +
+  theme(legend.title = element_blank()) +
   ylab("Count") +
   xlab("Date") +
   facet_grid(source ~., margins=TRUE, labeller = labeller(source=labels))
-clade_time
+spike_614_time
 ```
+
 
 #### How are UW Virology primers spread over time?
 ```{r, echo=FALSE, fig.height=4, fig.width=8}
@@ -99,6 +98,7 @@ primer_time <- df %>%
   xlab("Date")
 primer_time
 ```
+
 Do different primers have different Ct's?
 ```{r, fig.height=4, fig.width=8}
 dotplot_ct_primer <- df %>%
@@ -115,37 +115,56 @@ dotplot_ct_primer
 
 For UW Virology samples, decided to focus on N1, N2 primers since they're the most abundant and the main primers used when D614 & G614 virus are circulating. However, I'll also include analysis with ORF1ab primers. There are not enough Egene, RdRp primers to do analysis with.
 
-#### Is there a difference in Ct by clade?
+#### How does 614G vs. 614D vary over time for UW Primer sets?
+```{r, echo=FALSE, fig.height=4, fig.width=8}
+
+spike_614_UW_primers <- df %>%
+  filter(source == "UW") %>%
+  ggplot(aes(x=date, color=spike_614, fill=spike_614)) + 
+  geom_bar(position = position_stack()) + 
+  scale_fill_manual(values=c('#0072B2', '#D55E00'), name = "Spike 614 variant") +
+  scale_color_manual(values=c('#0072B2', '#D55E00'), name = "Spike 614 variant") +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  ylab("Count") +
+  xlab("Date") +
+  facet_grid(primers ~.,) +
+  labs(subtitle = "UW Virology: all samples")
+spike_614_UW_primers
+```
+
+
+#### Is there a difference in Ct by spike_614?
 For UW:
 ```{r}
-t.test(df$avg_ct[df$source == "UW" & df$primers == "N1, N2"]~df$clade[df$source == "UW" & df$primers == "N1, N2"])
-wilcox.test(formula = avg_ct ~ clade, data= df[df$source == "UW" & df$primers == "N1, N2", ], alternative = "two.sided")
+t.test(df$avg_ct[df$source == "UW" & df$primers == "N1, N2"]~df$spike_614[df$source == "UW" & df$primers == "N1, N2"])
+wilcox.test(formula = avg_ct ~ spike_614, data= df[df$source == "UW" & df$primers == "N1, N2", ], alternative = "two.sided")
 
-medD_n1n2 = median(df$avg_ct[df$source == "UW" & df$primers == "N1, N2" & df$clade == "D"])
-medG_n1n2 = median(df$avg_ct[df$source == "UW" & df$primers == "N1, N2" & df$clade == "G"])
+medD_n1n2 = median(df$avg_ct[df$source == "UW" & df$primers == "N1, N2" & df$spike_614 == "D"])
+medG_n1n2 = median(df$avg_ct[df$source == "UW" & df$primers == "N1, N2" & df$spike_614 == "G"])
 medD_n1n2
 medG_n1n2
 medD_n1n2 - medG_n1n2
 ```
 
 ```{r}
-t.test(df$avg_ct[df$source == "UW" & df$primers == "ORF1ab"]~df$clade[df$source == "UW" & df$primers == "ORF1ab"])
-wilcox.test(formula = avg_ct ~ clade, data= df[df$source == "UW" & df$primers == "ORF1ab", ], alternative = "two.sided")
+t.test(df$avg_ct[df$source == "UW" & df$primers == "ORF1ab"]~df$spike_614[df$source == "UW" & df$primers == "ORF1ab"])
+wilcox.test(formula = avg_ct ~ spike_614, data= df[df$source == "UW" & df$primers == "ORF1ab", ], alternative = "two.sided")
 
-medD_orf1 = median(df$avg_ct[df$source == "UW" & df$primers == "ORF1ab" & df$clade == "D"])
+medD_orf1 = median(df$avg_ct[df$source == "UW" & df$primers == "ORF1ab" & df$spike_614 == "D"])
 medD_orf1
-medG_orf1 = median(df$avg_ct[df$source == "UW" & df$primers == "ORF1ab" & df$clade == "G"])
+medG_orf1 = median(df$avg_ct[df$source == "UW" & df$primers == "ORF1ab" & df$spike_614 == "G"])
 medG_orf1
 medD_orf1 - medG_orf1
 ```
 
 For SFS:
 ```{r}
-t.test(df$avg_ct[df$source == "SFS"]~df$clade[df$source == "SFS"])
-wilcox.test(formula = avg_ct ~ clade, data= df[df$source == "SFS", ], alternative = "two.sided")
+t.test(df$avg_ct[df$source == "SFS"]~df$spike_614[df$source == "SFS"])
+wilcox.test(formula = avg_ct ~ spike_614, data= df[df$source == "SFS", ], alternative = "two.sided")
 
-medD_sfs = median(df$avg_ct[df$source == "SFS" & df$clade == "D"])
-medG_sfs = median(df$avg_ct[df$source == "SFS" & df$clade == "G"])
+medD_sfs = median(df$avg_ct[df$source == "SFS" & df$spike_614 == "D"])
+medG_sfs = median(df$avg_ct[df$source == "SFS" & df$spike_614 == "G"])
 medD_sfs
 medG_sfs
 medD_sfs -medG_sfs
@@ -153,11 +172,11 @@ medD_sfs -medG_sfs
 
 For WA-DoH:
 ```{r}
-t.test(df$avg_ct[df$source == "wadoh"]~df$clade[df$source == "wadoh"])
-wilcox.test(formula = avg_ct ~ clade, data= df[df$source == "wadoh", ], alternative = "two.sided")
+t.test(df$avg_ct[df$source == "wadoh"]~df$spike_614[df$source == "wadoh"])
+wilcox.test(formula = avg_ct ~ spike_614, data= df[df$source == "wadoh", ], alternative = "two.sided")
 
-medD_wadoh = median(df$avg_ct[df$source == "wadoh" & df$clade == "D"])
-medG_wadoh = median(df$avg_ct[df$source == "wadoh" & df$clade == "G"])
+medD_wadoh = median(df$avg_ct[df$source == "wadoh" & df$spike_614 == "D"])
+medG_wadoh = median(df$avg_ct[df$source == "wadoh" & df$spike_614 == "G"])
 medD_wadoh
 medG_wadoh
 medD_wadoh - medG_wadoh
@@ -166,11 +185,11 @@ medD_wadoh - medG_wadoh
 ```{r, fig.width=5}
 dotplot_ct <- df %>%
   filter(primers == "N1, N2" | source == "SFS" | source == "wadoh") %>%
-  ggplot(mapping = aes(x=clade, y=avg_ct)) + 
-  geom_dotplot(binaxis="y", stackdir="center", dotsize = 0.6, binwidth = 0.5, stackratio=0.75, aes(color=clade, fill=clade)) +
+  ggplot(mapping = aes(x=spike_614, y=avg_ct)) + 
+  geom_dotplot(binaxis="y", stackdir="center", dotsize = 0.6, binwidth = 0.5, stackratio=0.75, aes(color=spike_614, fill=spike_614)) +
   geom_boxplot(alpha=0, size=0.3) +
-  scale_fill_manual(name = "Clade", labels = c("614D", "614G"), values=c('#0072B2', '#D55E00')) +
-  scale_color_manual(name = "Clade", labels = c("614D", "614G"), values=c('#0072B2', '#D55E00')) +
+  scale_fill_manual(name = "Spike variant", labels = c("614D", "614G"), values=c('#0072B2', '#D55E00')) +
+  scale_color_manual(name = "Spike variant", labels = c("614D", "614G"), values=c('#0072B2', '#D55E00')) +
   theme_minimal() +
   theme(legend.position = c(0.5, -0.045), 
         legend.direction = "horizontal",
@@ -186,8 +205,8 @@ dotplot_ct
 ```{r, fig.width=5}
 primer_ct <- df %>%
   filter(source == "UW") %>%
-  ggplot(mapping = aes(x=clade, y=avg_ct)) + 
-  geom_dotplot(binaxis="y", stackdir="center", dotsize = 0.6, binwidth = 0.5, aes(color=clade, fill=clade)) +
+  ggplot(mapping = aes(x=spike_614, y=avg_ct)) + 
+  geom_dotplot(binaxis="y", stackdir="center", dotsize = 0.6, binwidth = 0.5, aes(color=spike_614, fill=spike_614)) +
   geom_boxplot(alpha=0, size=0.3) +
   scale_fill_manual(name = "Clade", labels = c("614D", "614G"), values=c('#0072B2', '#D55E00')) +
   scale_color_manual(name = "Clade", labels = c("614D", "614G"), values=c('#0072B2', '#D55E00')) +
@@ -206,11 +225,11 @@ primer_ct
 ```{r, fig.width=5}
 orf1_ct <- df %>%
   filter(primers == "ORF1ab") %>%
-  ggplot(mapping = aes(x=clade, y=avg_ct)) + 
-  geom_dotplot(binaxis="y", stackdir="center", dotsize = 0.6, binwidth = 0.5, aes(color=clade, fill=clade)) +
+  ggplot(mapping = aes(x=spike_614, y=avg_ct)) + 
+  geom_dotplot(binaxis="y", stackdir="center", dotsize = 0.6, binwidth = 0.5, aes(color=spike_614, fill=spike_614)) +
   geom_boxplot(alpha=0, size=0.3) +
-  scale_fill_manual(name = "Clade", labels = c("614D", "614G"), values=c('#0072B2', '#D55E00')) +
-  scale_color_manual(name = "Clade", labels = c("614D", "614G"), values=c('#0072B2', '#D55E00')) +
+  scale_fill_manual(name = "Spike variant", labels = c("614D", "614G"), values=c('#0072B2', '#D55E00')) +
+  scale_color_manual(name = "Spike variant", labels = c("614D", "614G"), values=c('#0072B2', '#D55E00')) +
   theme_minimal() +
   theme(legend.position = c(0.5, -0.045), 
         legend.direction = "horizontal",
@@ -218,21 +237,22 @@ orf1_ct <- df %>%
         panel.spacing = unit(-0.5, "lines")) +
   ylab("Average Ct") +
   xlab("") +
-  geom_signif(comparisons = list(c("D", "G")), textsize = 3, test="wilcox.test") 
+  geom_signif(comparisons = list(c("D", "G")), textsize = 3, test="wilcox.test") +
+  labs(subtitle="UW Virology: ORF1ab primers")
 orf1_ct
 ```
 
 
-#### Is there a difference in age by clade?
+#### Is there a difference in age by spike_614?
 For UW:
 ```{r}
-t.test(df$bin_age[df$source == 'UW']~df$clade[df$source == 'UW'])
-wilcox.test(formula = bin_age ~ clade, data= df[df$source == 'UW', ], alternative = "two.sided")
+t.test(df$bin_age[df$source == 'UW']~df$spike_614[df$source == 'UW'])
+wilcox.test(formula = bin_age ~ spike_614, data= df[df$source == 'UW', ], alternative = "two.sided")
 ```
 For SFS:
 ```{r}
-t.test(df$bin_age[df$source == 'SFS'] ~ df$clade[df$source == 'SFS'])
-wilcox.test(formula = bin_age ~ clade, data= df[df$source == 'SFS', ], alternative = "two.sided")
+t.test(df$bin_age[df$source == 'SFS'] ~ df$spike_614[df$source == 'SFS'])
+wilcox.test(formula = bin_age ~ spike_614, data= df[df$source == 'SFS', ], alternative = "two.sided")
 ```
 
 Do we have the power to find an age difference in SCAN samples?
@@ -240,7 +260,7 @@ Do we have the power to find an age difference in SCAN samples?
 testing_age <- function(df, ss) {
   ttest <- df %>%
     sample_n(ss) %>%
-    t.test(bin_age ~ clade, data = ., var.equal = TRUE)
+    t.test(bin_age ~ spike_614, data = ., var.equal = TRUE)
   return(ttest$p.value)
 }
 
@@ -253,10 +273,10 @@ sum(power_age_79 < 0.05)/10000
 ```{r, fig.width=5}
 dotplot_age <- df %>%
   drop_na(bin_age, age_bin) %>%
-  ggplot(mapping = aes(x=clade, y=bin_age), na.rm=TRUE) + 
-  geom_dotplot(aes( color=clade, fill=clade), binaxis="y", stackdir="center", stackratio = 0.3, dotsize = 0.5, position = position_jitter(width = 0, height=4)) +
-  scale_fill_manual(name = "Clade", values=c('#0072B2', '#D55E00')) +
-  scale_color_manual(name = "Clade", values=c('#0072B2', '#D55E00')) +
+  ggplot(mapping = aes(x=spike_614, y=bin_age), na.rm=TRUE) + 
+  geom_dotplot(aes( color=spike_614, fill=spike_614), binaxis="y", stackdir="center", stackratio = 0.3, dotsize = 0.5, position = position_jitter(width = 0, height=4)) +
+  scale_fill_manual(name = "Spike variant", values=c('#0072B2', '#D55E00')) +
+  scale_color_manual(name = "Spike variant", values=c('#0072B2', '#D55E00')) +
   theme_minimal() +
   theme(legend.position = c(0.5, -0.045), 
         legend.direction = "horizontal",
@@ -276,7 +296,7 @@ Note: We not have age for WA-DOH samples.
 ct_age <- df%>%
   filter(primers == "N1, N2" & !is.na(bin_age)) %>%
   ggplot(aes(x = bin_age, y = avg_ct)) +
-  geom_point(aes(color=clade, fill=clade)) +
+  geom_point(aes(color=spike_614, fill=spike_614)) +
   scale_fill_manual(values=c('#0072B2', '#D55E00')) +
   scale_color_manual(values=c('#0072B2', '#D55E00')) +
   geom_smooth(colour = "black", size=0.5, method = "lm") +
@@ -291,12 +311,12 @@ ct_age
 age_time <- df %>%
   drop_na(age_bin) %>%
   ggplot(aes(x = date, y = bin_age)) +
-  geom_point(aes(color=clade, fill=clade), size=.5) +
-  scale_fill_manual(values=c('#0072B2', '#D55E00')) +
-  scale_color_manual(values=c('#0072B2', '#D55E00')) +
+  geom_point(aes(color=spike_614, fill=spike_614), size=.5) +
+  scale_fill_manual(values=c('#0072B2', '#D55E00'), name = "Spike variant", labels = c("614D", "614G")) +
+  scale_color_manual(values=c('#0072B2', '#D55E00'), name = "Spike variant", labels = c("614D", "614G")) +
   theme_minimal() +
-  geom_smooth(method="lm", col = "#0072B2", size=1, data = df[df$clade=="D",]) +
-  geom_smooth(method="lm", col = "#D55E00", size=1, data = df[df$clade=="G",]) +
+  geom_smooth(method="lm", col = "#0072B2", size=1, data = df[df$spike_614=="D",]) +
+  geom_smooth(method="lm", col = "#D55E00", size=1, data = df[df$spike_614=="G",]) +
   xlab("Date") +
   ylab("Age")
 age_time
@@ -305,17 +325,23 @@ age_time
 
 
 #### Ct vs. time
-```{r, fig.width=7}
+```{r, fig.width=7, fig.height=7}
+primer.labs <- c("N1, N2" = "N1, N2", "Egene, RdRp" = "Egene,\nRdRp", ORF1ab = "ORF1ab", wadoh = "WA DOH", scan = "SCAN", "(all)" = "All")
+
+
 ct_time <- df %>%
-  filter(primers == "N1, N2") %>%
+  filter(!is.na(avg_ct)) %>%
   ggplot(aes(x = date, y = avg_ct)) +
-  geom_point(aes(color=clade, fill=clade)) +
-  scale_fill_manual(values=c('#0072B2', '#D55E00')) +
-  scale_color_manual(values=c('#0072B2', '#D55E00')) +
+  geom_point(aes(color=spike_614, fill=spike_614), alpha = 0.3, size=0.9) +
+  scale_fill_manual(values=c('#0072B2', '#D55E00'), name = "Spike variant", labels = c("614D", "614G")) +
+  scale_color_manual(values=c('#0072B2', '#D55E00'), name = "Spike variant", labels = c("614D", "614G")) +
   theme_minimal() +
-  geom_smooth(method="lm", col = "black", size=0.5) +
+  geom_smooth(method="lm", col = "#0072B2", size=1, data = df[df$spike_614=="D",]) +
+  geom_smooth(method="lm", col = "#D55E00", size=1, data = df[df$spike_614=="G",]) +
   xlab("Date") +
-  ylab("Average Ct")
+  ylab("Average Ct") +
+  facet_grid(primers ~ ., labeller = labeller(primers = primer.labs))
+
 ct_time
 ```
 
@@ -324,24 +350,41 @@ ct_time
 ct_sympon <- df %>%
   filter(!is.na(post_symp)) %>%
   ggplot(aes(x = post_symp, y = avg_ct)) +
-  geom_point(aes(color=clade, fill=clade)) +
-  scale_fill_manual(values=c('#0072B2', '#D55E00')) +
-  scale_color_manual(values=c('#0072B2', '#D55E00')) +
+  geom_point(aes(color=spike_614, fill=spike_614), alpha=0.3, size=0.9) +
+  scale_fill_manual(values=c('#0072B2', '#D55E00'), name = "Spike variant", labels = c("614D", "614G")) +
+  scale_color_manual(values=c('#0072B2', '#D55E00'), name = "Spike variant", labels = c("614D", "614G")) +
   theme_minimal() +
-  geom_smooth(data = subset(df, post_symp >=0 & post_symp < 20),method = "lm", color = "black", size=0.5) +
+  theme(legend.position = "none") +
+  geom_smooth(method="lm", col = "#0072B2", size=1, data = subset(df[df$spike_614=="D",], post_symp >= 0 & post_symp < 15)) +
+  geom_smooth(method="lm", col = "#D55E00", size=1, data = subset(df[df$spike_614=="G",], post_symp >= 0 & post_symp < 15)) +
   xlab("Days since symptoms started") +
   ylab("Average Ct")
 ct_sympon
 ```
 ```{r}
-  cor.test(as.numeric(df$post_symp[df$post_symp >= 0 & df$post_symp < 20]), df$avg_ct[df$post_symp >= 0 & df$post_symp < 20], method = "pearson")
-
+  cor.test(as.numeric(df$post_symp[df$post_symp >= 0 & df$post_symp < 15]), df$avg_ct[df$post_symp >= 0 & df$post_symp < 15], method = "pearson")
 ```
 
+#### symptom onset vs. time
+```{r, fig.width=7}
+sympon_time <- df %>%
+  filter(!is.na(post_symp)) %>%
+  ggplot(aes(x = date, y = post_symp)) +
+  geom_point(aes(color=spike_614, fill=spike_614), alpha=0.3, size =0.9) +
+  scale_fill_manual(values=c('#0072B2', '#D55E00'), name = "Spike variant", labels = c("614D", "614G")) +
+  scale_color_manual(values=c('#0072B2', '#D55E00'), name = "Spike variant", labels = c("614D", "614G")) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  geom_smooth(method="lm", col = "#0072B2", size=1, data = df[df$spike_614=="D",]) +
+  geom_smooth(method="lm", col = "#D55E00", size=1, data = df[df$spike_614=="G",]) +
+  xlab("Date") +
+  ylab("Days since symptoms onset")
+sympon_time
+```
 
 #### Linear model of Ct w/ UW
 ```{r}
-lreg_ct <- glm(avg_ct ~ clade + bin_age + primers + week, data = df[df$source == "UW", ])
+lreg_ct <- glm(avg_ct ~ spike_614 + bin_age + primers + post_symp, data = df[df$source == "UW", ])
 summary(lreg_ct)
 
 df$residuals_ct[!is.na(df$age_bin) & df$source == "UW"] = residuals(lreg_ct)
@@ -364,7 +407,7 @@ gridExtra::grid.arrange(p1_ct, p2_ct, nrow=1)
 It's probably not appropriate to just include primer type as separate predictors because these primers could have different intercepts and slopes. Therefore, I'll do it for N1, N2 primers and ORF1ab below.
 
 ```{r}
-lreg_ct_n1n2 <- glm(avg_ct ~ clade + bin_age + week, data = df[df$source == "UW" & df$primers == "N1, N2", ])
+lreg_ct_n1n2 <- glm(avg_ct ~ spike_614 + bin_age + post_symp, data = df[df$primers == "N1, N2", ])
 summary(lreg_ct_n1n2)
 
 df$residuals_ct_n1n2[!is.na(df$age_bin) & df$source == "UW" & df$primers == "N1, N2"] = residuals(lreg_ct_n1n2)
@@ -389,26 +432,26 @@ gridExtra::grid.arrange(p1_ct_n1n2, p2_ct_n1n2, nrow=1)
 Pavitra's standard curve for N1, N2 does not include any samples with Ct less than 20 and our average Ct is lower than that. So the curve may not be linear with lower Ct. But if we were to assume the curve was linear with lower Ct, the slope for {log(viral load) = Ct(slope) + intercept} is -0.2995.
 ```{r}
 n1n2_slope = -0.2995
-log_viral_load = lreg_ct_n1n2$coefficients["cladeG"]*n1n2_slope
+log_viral_load = lreg_ct_n1n2$coefficients["spike_614G"]*n1n2_slope
 log_viral_load
 se = summary(lreg_ct_n1n2)$coefficients[2, 2]
 
-upper_ci = (lreg_ct_n1n2$coefficients["cladeG"] + (1.96*se)) * n1n2_slope
-lower_ci = (lreg_ct_n1n2$coefficients["cladeG"] - (1.96*se)) * n1n2_slope
+upper_ci = (lreg_ct_n1n2$coefficients["spike_614G"] + (1.96*se)) * n1n2_slope
+lower_ci = (lreg_ct_n1n2$coefficients["spike_614G"] - (1.96*se)) * n1n2_slope
 upper_ci
 lower_ci
 ```
 
 
 ```{r}
-lreg_summary <- tibble("Variable" = c("Intercept", "614G", "Age", "Week"), 
-                       "Coeff. est." = c("20.14", "-1.39", "0.0088", "-0.20"), 
-                       "Std. Error" = c("0.66", "0.26", "0.0058", "0.12"),
-                       "p-value" = c("<2e-16***", "9.7e-08***", "0.13", "0.092"))
+lreg_summary <- tibble("Variable" = c("Intercept", "614G", "Age", "Days after\nsymptom onset"), 
+                       "Coeff. est." = c("18.52", "-1.56", "0.010", "0.20"), 
+                       "Std. Error" = c("0.48", "0.30", "0.0076", "0.038"),
+                       "p-value" = c("<2e-16***", "1.9e-07***", "0.19", "3.3e-07***"))
 
 
 table <- ggtexttable(lreg_summary, rows = NULL, 
-                     theme = ttheme("lBlack", padding = unit(c(4, 3), "mm"), colnames.style = colnames_style(fill = "white", hjust=0, x =0.05, size=10), 
+                     theme = ttheme("light", padding = unit(c(4, 3), "mm"), colnames.style = colnames_style(fill = "white", hjust=0, x =0.05, size=10), 
                                     tbody.style = tbody_style(fill = "white", hjust=0, x =0.05, size=10))) 
 
 table
@@ -416,7 +459,7 @@ table
 
 
 ```{r}
-lreg_ct_orf1 <- glm(avg_ct ~ clade + bin_age + week, data = df[df$source == "UW" & df$primers == "ORF1ab", ])
+lreg_ct_orf1 <- glm(avg_ct ~ spike_614 + bin_age + post_symp, data = df[df$source == "UW" & df$primers == "ORF1ab", ])
 summary(lreg_ct_orf1)
 
 df$residuals_ct_orf1[!is.na(df$age_bin) & df$source == "UW" & df$primers == "ORF1ab"] = residuals(lreg_ct_orf1)
@@ -439,22 +482,62 @@ Residual distribution does not look good here, which suggets that this GLM model
 
 
 ```{r}
-lreg_summary_orf1 <- tibble("Variable" = c("Intercept", "614G", "Age", "Week"), 
-                       "Coeff. est." = c("23.81", "-2.64", "0.031", "-0.39"), 
-                       "Std. Error" = c("2.71", "0.86", "0.018", "0.34"),
-                       "p-value" = c("3.8e-16***", "0.0025**", "0.092", "0.26"))
+lreg_summary_orf1 <- tibble("Variable" = c("Intercept", "614G", "Age", "Days after\nsymptom onset"), 
+                       "Coeff. est." = c("18.02", "-1.50", "0.031", "0.35"), 
+                       "Std. Error" = c("1.53", "1.01", "0.021", "0.079"),
+                       "p-value" = c("<2e-16***", "0.143", "0.138", "2.5e-05***"))
 
 
 table_orf1 <- ggtexttable(lreg_summary_orf1, rows = NULL, 
-                     theme = ttheme("lBlack", padding = unit(c(4, 3), "mm"), colnames.style = colnames_style(fill = "white", hjust=0, x =0.05, size=10), 
-                                    tbody.style = tbody_style(fill = "white", hjust=0, x =0.05, size=10))) 
+                     theme = ttheme("light", padding = unit(c(4, 3), "mm"), colnames.style = colnames_style(fill = "white", hjust=0, x =0.05, size=10), 
+                                    tbody.style = tbody_style(fill = "white", hjust=0, x =0.05, size=10))) %>%
+                     tab_add_title("UW Virology: ORF1ab primers", face = "bold")
 
 table_orf1
 ```
+#### Linear model of Ct w/ SFS/SCAN
+```{r}
+lreg_ct_sfs <- glm(avg_ct ~ spike_614 + bin_age + post_symp, data = df[df$source == "SFS", ])
+summary(lreg_ct_sfs)
+
+df$residuals_ct_sfs[!is.na(df$age_bin) & df$source == "SFS" & !is.na(df$post_symp)] = residuals(lreg_ct_sfs)
+
+p1_ct_sfs <- cbind(Fitted = fitted(lreg_ct_sfs), Residuals=residuals(lreg_ct_sfs)) %>%
+  as.data.frame() %>%
+  ggplot(aes(x=Fitted, y=Residuals)) + geom_point()
+
+p2_ct_sfs <- df %>%
+  filter(!is.na(residuals_ct_sfs)) %>%
+  ggplot(aes(x=residuals_ct_sfs)) +
+  geom_histogram(aes(y = ..density..), binwidth = 1) +
+  xlab("Residuals") +
+  stat_function(fun = dnorm, 
+                colour = "red", 
+                args = list(mean = 0, sd = sd(df$residuals_ct[!is.na(df$residuals_ct)])))
+
+gridExtra::grid.arrange(p1_ct_sfs, p2_ct_sfs, nrow=1)
+```
+
+```{r}
+lreg_summary_scan <- tibble("Variable" = c("Intercept", "614G", "Age", "Days after\nsymptom onset"), 
+                       "Coeff. est." = c("26.10", "-3.02", "-0.05", "0.34"), 
+                       "Std. Error" = c("1.96", "1.22", "0.040", "0.10"),
+                       "p-value" = c("<2e-16***", "0.017*", "0.23", "0.0026**"))
+
+
+table_scan <- ggtexttable(lreg_summary_scan, rows = NULL, 
+                     theme = ttheme("light", padding = unit(c(4, 3), "mm"), colnames.style = colnames_style(fill = "white", hjust=0, x =0.05, size=10), 
+                                    tbody.style = tbody_style(fill = "white", hjust=0, x =0.05, size=10))) %>%
+                       tab_add_title("SCAN", face = "bold")
+
+
+table_scan
+```
+
 #### Linear model of age w/ UW
 ```{r}
 
-lreg_age <- glm(bin_age ~ clade + week, data = df)
+lreg_age <- glm(bin_age ~ spike_614 + week, data = df)
 summary(lreg_age)
 
 df$residuals_age[!is.na(df$age_bin)] = residuals(lreg_age)
@@ -489,28 +572,513 @@ table_age
 ```
 
 
+#### Is there a difference in Ct by clade?
+```{r}
+primer.labs <- c("N1, N2", "ORF1ab", "Egene, RdRp", "WA DOH", "SCAN")
+names(primer.labs) <- c("N1, N2", "ORF1ab", "Egene, RdRp", "wadoh", "scan")
+df$clade <- factor(df$clade, levels = c("19A", "19B", "20A", "20B", "20C"))
 
+clade_ct <- df %>%
+  filter(primers != "Egene, RdRp") %>%
+  drop_na(clade) %>%
+  ggplot(mapping = aes(x=clade, y=avg_ct)) + 
+  geom_dotplot(binaxis="y", stackdir="center", dotsize = .9, binwidth = 0.35, aes(color=clade, fill=clade)) +
+  geom_boxplot(alpha=0, size=0.2) +
+  theme_minimal() +
+  scale_x_discrete(breaks = levels(df$clade),
+                   limits = c("19A", "19B", "skip", "20A", "20B", "20C", "skip")) +
+  theme(#legend.position = c(0.8, 0.25), 
+        legend.direction = "vertical",
+        panel.spacing.x = unit(0, "lines")) +
+  scale_fill_manual(values=c('#4377CD', '#61AB9D', '#94BD61', '#CDB642', '#E68133'), name = "") +
+  scale_color_manual(values=c('#4377CD', '#61AB9D', '#94BD61', '#CDB642', '#E68133'), name = "") +
+  ylab("Average Ct") +
+  xlab("Clade") +
+  #geom_signif(comparisons = list(c("19B", "19A")), textsize = 3, test="wilcox.test") +
+  facet_wrap(~ primers, labeller = labeller(primers=primer.labs))
+clade_ct
+```
+
+```{r}
+res.aov <- aov(avg_ct ~ clade, data = df)
+summary(res.aov)
+
+TukeyHSD(res.aov)
+```
+
+#### Linear model of Ct w/ UW w/ clade as predictor instead
+```{r}
+df$clade = factor(df$clade, levels = c("19B", "20C", "20A", "19A", "20B"))
+
+lreg_ct_clade <- glm(avg_ct ~ spike_614 + clade + bin_age + post_symp, data = df[df$primers=="N1, N2",])
+summary(lreg_ct_clade)
+
+df$residuals_ct_clade[!is.na(df$age_bin) & df$source == "UW"] = residuals(lreg_ct_clade)
+
+p1_ct_clade <- cbind(Fitted = fitted(lreg_ct_clade), Residuals=residuals(lreg_ct_clade)) %>%
+  as.data.frame() %>%
+  ggplot(aes(x=Fitted, y=Residuals)) + geom_point()
+
+p2_ct_clade <- df %>%
+  filter(!is.na(residuals_ct_clade)) %>%
+  ggplot(aes(x=residuals_ct_clade)) +
+  geom_histogram(aes(y = ..density..), binwidth = 1) +
+  xlab("Residuals") +
+  stat_function(fun = dnorm, 
+                colour = "red", 
+                args = list(mean = 0, sd = sd(df$residuals_ct_clade[!is.na(df$residuals_ct_clade)])))
+
+gridExtra::grid.arrange(p1_ct_clade, p2_ct_clade, nrow=1)
+```
+```{r}
+lreg_clade <- tibble("Variable" = c("Intercept", "614G", "clade 20C", "clade 20A", "clade 19A", "Age", "Days after\nsymptom onset"), 
+                       "Coeff. est." = c("18.64", "-4.29", "2.74", "2.49", "-1.10", "0.0089", "0.19"), 
+                       "Std. Error" = c("0.49", "1.55", "1.55", "1.79", "1.11", "0.0078", "0.038"),
+                       "p-value" = c("<2e-16***", "0.0059**", "0.077", "0.17", "0.32", "0.25", "4.0e-07***"))
+
+
+table_clade <- ggtexttable(lreg_clade, rows = NULL, 
+                     theme = ttheme("lBlack", padding = unit(c(4, 3), "mm"), colnames.style = colnames_style(fill = "white", hjust=0, x =0.05, size=10), 
+                                    tbody.style = tbody_style(fill = "white", hjust=0, x =0.05, size=10))) 
+
+table_clade
+```
+
+
+#### Does # of amino acid substitutions different from Wuhan-Hu-1 impact Ct?
+
+##### What is the distribution of substitutions in the dataset?
+```{r}
+summary(df$nt_muts)
+nt_mean = mean(df$nt_muts, na.rm=TRUE)
+nt_sd = sd(df$nt_muts, na.rm=TRUE)
+nt_sd
+```
+```{r}
+summary(df$aa_muts)
+aa_mean = mean(df$aa_muts, na.rm=TRUE)
+aa_sd = sd(df$aa_muts, na.rm=TRUE)
+aa_sd
+```
+```{r}
+summary(df$syn_muts)
+syn_mean = mean(df$syn_muts, na.rm=TRUE)
+syn_sd = sd(df$syn_muts, na.rm=TRUE)
+syn_sd
+```
+
+```{r}
+dotplot_mutations <- df %>%
+  ggplot(mapping = aes(x=nt_muts)) + 
+  geom_bar() +
+  theme_minimal() +
+  xlab("RNA substitutions")
+dotplot_mutations
+
+dotplot_aa_muts <- df %>%
+  filter(spike_614 == "D") %>%
+  ggplot(mapping = aes(x=aa_muts)) + 
+  geom_bar() +
+  theme_minimal() +
+  xlab("Amino acid substitutions")
+dotplot_aa_muts
+
+dotplot_syn_muts <- df %>%
+  ggplot(mapping = aes(x=syn_muts)) + 
+  geom_bar() +
+  theme_minimal() +
+  xlab("Synonymous substitutions")
+dotplot_syn_muts
+```
+Samples with greater than 20 nucleotide mutations are wayy outside of distribution. Let's drop those.
+
+#### Are substitutions and Ct correlated?
+```{r}
+d.syn.pearsons = cor.test(df$syn_muts[df$spike_614 == "D" & df$nt_muts <20], df$avg_ct[df$spike_614 == "D" & df$nt_muts <20], method = "pearson")
+g.syn.pearsons = cor.test(df$syn_muts[df$spike_614 == "G" & df$nt_muts <20], df$avg_ct[df$spike_614 == "G" & df$nt_muts <20], method = "pearson")
+syn.pearsons = cor.test(df$syn_muts[df$nt_muts <20], df$avg_ct[df$nt_muts <20], method = "pearson")
+d.aa.pearsons = cor.test(df$aa_muts[df$spike_614 == "D" & df$nt_muts <20], df$avg_ct[df$spike_614 == "D" & df$nt_muts <20], method = "pearson")
+g.aa.pearsons = cor.test(df$aa_muts[df$spike_614 == "G" & df$nt_muts <20], df$avg_ct[df$spike_614 == "G" & df$nt_muts <20], method = "pearson")
+aa.pearsons = cor.test(df$aa_muts[df$nt_muts <20], df$avg_ct[df$nt_muts <20], method = "pearson")
+
+d.syn.pearsons
+g.syn.pearsons
+syn.pearsons
+d.aa.pearsons
+g.aa.pearsons
+aa.pearsons
+```
+
+
+
+```{r}
+spike.labs <- c(D = "614D", G = "614G", "(all)" = "All")
+
+syn_subs_ct <- df %>%
+  filter(nt_muts <20) %>%
+  ggplot(aes(x = syn_muts, y = avg_ct)) +
+  geom_jitter(aes(color=spike_614, fill=spike_614), alpha=0.2, width = 0.25, height=0) +
+  scale_fill_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  scale_color_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  geom_smooth(method="lm", col = "black", size=0.4) +
+  geom_smooth(method = "loess", linetype="dashed", col = "black") +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  xlab("Synonymous substitutions") +
+  ylab("Average Ct") +
+  facet_grid(~ spike_614,labeller = labeller(spike_614=spike.labs))
+
+syn_subs_ct
+
+aa_subs_ct <- df %>%
+  filter(nt_muts <20) %>%
+  ggplot(aes(x = aa_muts, y = avg_ct)) +
+  geom_jitter(aes(color=spike_614, fill=spike_614), alpha=0.2, width = 0.25, height=0) +
+  scale_fill_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  scale_color_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  geom_smooth(color = "black", method="lm", size=0.4) +
+  geom_smooth(color = "black", method = "loess", linetype="dashed") +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  xlab("Amino acid substitutions") +
+  ylab("Average Ct") +
+  facet_grid(~ spike_614, margins=TRUE, labeller = labeller(spike_614=spike.labs)) 
+aa_subs_ct
+```
+
+GLm of Ct predicted by substitutions
+```{r}
+reg_subs_d <- glm(avg_ct ~ aa_muts + syn_muts + post_symp + week + primers, data = df[df$spike_614 == "D" & df$nt_muts < 20,])
+summary(reg_subs_d)
+reg_subs_g <- glm(avg_ct ~ aa_muts + syn_muts + post_symp + week + primers, data = df[df$spike_614 == "G" & df$nt_muts < 20,])
+summary(reg_subs_g)
+```
+
+```{r}
+summary_dsubs_reg <- tibble("Variable" = c("Intercept", "Amino acid\nsubstitutions", "Synonymous\nsubstitutions", "Days after\nsymptom onset", "Week since start\nof WA epidemic", "ORF1ab primers", "Egene, RdRp\nprimers", "WA DOH primers", "SCAN primers"), 
+                       "Coeff. est." = c("21.03", "-0.43", "0.22", "0.12", "0.063", "1.35", "1.42", "2.18", "5.20"), 
+                       "Std. Error" = c("1.13", "0.16", "0.16", "0.034", "0.16", "0.77", "1.39", "0.59", "0.78"),
+                       "p-value" = c("<2e-16***", "0.0057**", "0.16", "0.00036***", "0.70", "0.081", "0.31", "0.00023***", "1.0e-10***"))
+
+
+table_dsubs_reg<- ggtexttable(summary_dsubs_reg, rows = NULL, 
+                     theme = ttheme("light", padding = unit(c(4, 3), "mm"), colnames.style = colnames_style(fill = "white", hjust=0, x =0.05, size=10), 
+                                    tbody.style = tbody_style(fill = "white", hjust=0, x =0.05, size=10))) %>%
+                       tab_add_title("Spike 614D", face = "bold")
+
+
+table_dsubs_reg
+```
+```{r}
+summary_gsubs_reg <- tibble("Variable" = c("Intercept", "Amino acid\nsubstitutions", "Synonymous\nsubstitutions", "Days after\nsymptom onset", "Week since start\nof WA epidemic", "ORF1ab primers", "Egene, RdRp\nprimers", "WA DOH primers", "SCAN primers"), 
+                       "Coeff. est." = c("18.68", "0.031", "0.24", "0.23", "-0.41", "1.92", "4.33", "3.92", "5.21"), 
+                       "Std. Error" = c("1.29", "0.14", "0.16", "0.034", "0.14", "0.49", "3.91", "0.54", "0.96"),
+                       "p-value" = c("<2e-16**", "0.82", "0.12", "5.2e-11***", "0.0041**", "9.5e-05***", "0.27", "1.1e-12***", "7.8e-08***"))
+
+
+table_gsubs_reg<- ggtexttable(summary_gsubs_reg, rows = NULL, 
+                     theme = ttheme("light", padding = unit(c(4, 3), "mm"), colnames.style = colnames_style(fill = "white", hjust=0, x =0.05, size=10), 
+                                    tbody.style = tbody_style(fill = "white", hjust=0, x =0.05, size=10))) %>%
+                       tab_add_title("Spike 614G", face = "bold")
+
+
+table_gsubs_reg
+```
+
+##### Are there specific genes in which more aa substitions really impact Ct?
+```{r}
+ct_orf1a <- df %>%
+  ggplot(aes(x = ORF1a, y = avg_ct)) +
+  geom_jitter(aes(color=spike_614, fill=spike_614), height=0, alpha=0.4) +
+  scale_fill_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  scale_color_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  geom_smooth(method="lm", col = "black", size=0.4) +
+  theme_minimal() +
+  
+  theme(legend.position = "none") +
+  xlab("Amino acid substitutions in ORF1a") +
+  ylab("Average Ct") +
+  facet_grid(~ spike_614, margins=TRUE, labeller = labeller(spike_614=spike.labs ))
+ct_orf1a
+
+reg_subs_orf1a <- glm(avg_ct ~ ORF1a + ORF1a.nt + post_symp + week + primers, data = df[df$spike_614 == "D" & df$nt_muts < 20,])
+summary(reg_subs_orf1a)
+```
+
+```{r}
+ct_orf1b <- df %>%
+  ggplot(aes(x = ORF1b, y = avg_ct)) +
+  geom_jitter(aes(color=spike_614, fill=spike_614), height=0, alpha=0.4) +
+  scale_fill_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  scale_color_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  geom_smooth(method="lm", col = "black", size=0.4) +
+  theme_minimal() +
+  
+  theme(legend.position = "none") +
+  xlab("Amino acid substitutions in ORF1b") +
+  ylab("Average Ct") +
+  facet_grid(~ spike_614, margins=TRUE, labeller = labeller(spike_614=spike.labs ))
+ct_orf1b
+
+reg_subs_orf1b <- glm(avg_ct ~ ORF1b + ORF1b.nt + post_symp + week + primers, data = df[df$spike_614 == "D" & df$nt_muts < 20,])
+summary(reg_subs_orf1b)
+```
+
+```{r}
+ct_S <- df %>%
+  ggplot(aes(x = S, y = avg_ct)) +
+  geom_jitter(aes(color=spike_614, fill=spike_614), height=0, alpha=0.4) +
+  scale_fill_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  scale_color_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  geom_smooth(method="lm", col = "black", size=0.4) +
+  theme_minimal() +
+  
+  theme(legend.position = "none") +
+  xlab("Amino acid substitutions in S") +
+  ylab("Average Ct") +
+  facet_grid(~ spike_614, margins=TRUE, labeller = labeller(spike_614=spike.labs ))
+ct_S
+
+reg_subs_S <- glm(avg_ct ~ S + S.nt + post_symp + week + primers, data = df[df$spike_614 == "D" & df$nt_muts < 20,])
+summary(reg_subs_S)
+```
+
+```{r}
+ct_ORF3a <- df %>%
+  ggplot(aes(x = ORF3a, y = avg_ct)) +
+  geom_jitter(aes(color=spike_614, fill=spike_614), height=0, alpha=0.4) +
+  scale_fill_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  scale_color_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  geom_smooth(method="lm", col = "black", size=0.4) +
+  theme_minimal() +
+  
+  theme(legend.position = "none") +
+  xlab("Amino acid substitutions in ORF3a") +
+  ylab("Average Ct") +
+  facet_grid(~ spike_614, margins=TRUE, labeller = labeller(spike_614=spike.labs ))
+ct_ORF3a
+
+reg_subs_ORF3a <- glm(avg_ct ~ ORF3a + ORF3a.nt + post_symp + week + primers, data = df[df$spike_614 == "D" & df$nt_muts < 20,])
+summary(reg_subs_ORF3a)
+```
+
+```{r}
+ct_E <- df %>%
+  ggplot(aes(x = E, y = avg_ct)) +
+  geom_jitter(aes(color=spike_614, fill=spike_614), height=0, alpha=0.4) +
+  scale_fill_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  scale_color_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  geom_smooth(method="lm", col = "black", size=0.4) +
+  theme_minimal() +
+  
+  theme(legend.position = "none") +
+  xlab("Amino acid substitutions in E") +
+  ylab("Average Ct") +
+  facet_grid(~ spike_614, margins=TRUE, labeller = labeller(spike_614=spike.labs ))
+ct_E
+
+reg_subs_E <- glm(avg_ct ~ E + E.nt + post_symp + week + primers, data = df[df$spike_614 == "D" & df$nt_muts < 20,])
+summary(reg_subs_E)
+```
+
+```{r}
+ct_M <- df %>%
+  ggplot(aes(x = M, y = avg_ct)) +
+  geom_jitter(aes(color=spike_614, fill=spike_614), height=0, alpha=0.4) +
+  scale_fill_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  scale_color_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  geom_smooth(method="lm", col = "black", size=0.4) +
+  theme_minimal() +
+  
+  theme(legend.position = "none") +
+  xlab("Amino acid substitutions in M") +
+  ylab("Average Ct") +
+  facet_grid(~ spike_614, margins=TRUE, labeller = labeller(spike_614=spike.labs ))
+ct_M
+
+reg_subs_M <- glm(avg_ct ~ M + M.nt + post_symp + week + primers, data = df[df$spike_614 == "D" & df$nt_muts < 20,])
+summary(reg_subs_M)
+```
+
+```{r}
+ct_ORF6 <- df %>%
+  ggplot(aes(x = ORF6, y = avg_ct)) +
+  geom_jitter(aes(color=spike_614, fill=spike_614), height=0, alpha=0.4) +
+  scale_fill_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  scale_color_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  geom_smooth(method="lm", col = "black", size=0.4) +
+  theme_minimal() +
+  
+  theme(legend.position = "none") +
+  xlab("Amino acid substitutions in ORF6") +
+  ylab("Average Ct") +
+  facet_grid(~ spike_614, margins=TRUE, labeller = labeller(spike_614=spike.labs ))
+ct_ORF6
+
+reg_subs_ORF6 <- glm(avg_ct ~ ORF6 + ORF6.nt + post_symp + week + primers, data = df[df$spike_614 == "D" & df$nt_muts < 20,])
+summary(reg_subs_ORF6)
+```
+
+```{r}
+ct_ORF7a <- df %>%
+  ggplot(aes(x = ORF7a, y = avg_ct)) +
+  geom_jitter(aes(color=spike_614, fill=spike_614), height=0, alpha=0.4) +
+  scale_fill_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  scale_color_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  geom_smooth(method="lm", col = "black", size=0.4) +
+  theme_minimal() +
+  
+  theme(legend.position = "none") +
+  xlab("Amino acid substitutions in ORF7a") +
+  ylab("Average Ct") +
+  facet_grid(~ spike_614, margins=TRUE, labeller = labeller(spike_614=spike.labs ))
+ct_ORF7a
+
+reg_subs_ORF7a <- glm(avg_ct ~ ORF7a + ORF7a.nt + post_symp + week + primers, data = df[df$spike_614 == "D" & df$nt_muts < 20,])
+summary(reg_subs_ORF7a)
+```
+
+```{r}
+ct_ORF7b <- df %>%
+  ggplot(aes(x = ORF7b, y = avg_ct)) +
+  geom_jitter(aes(color=spike_614, fill=spike_614), height=0, alpha=0.4) +
+  scale_fill_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  scale_color_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  geom_smooth(method="lm", col = "black", size=0.4) +
+  theme_minimal() +
+  
+  theme(legend.position = "none") +
+  xlab("Amino acid substitutions in ORF7b") +
+  ylab("Average Ct") +
+  facet_grid(~ spike_614, margins=TRUE, labeller = labeller(spike_614=spike.labs ))
+ct_ORF7b
+
+reg_subs_ORF7b <- glm(avg_ct ~ ORF7b + ORF7b.nt + post_symp + week + primers, data = df[df$spike_614 == "D" & df$nt_muts < 20,])
+summary(reg_subs_ORF7b)
+```
+
+```{r}
+ct_ORF8 <- df %>%
+  ggplot(aes(x = ORF8, y = avg_ct)) +
+  geom_jitter(aes(color=spike_614, fill=spike_614), height=0, alpha=0.4) +
+  scale_fill_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  scale_color_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  geom_smooth(method="lm", col = "black", size=0.4) +
+  theme_minimal() +
+  
+  theme(legend.position = "none") +
+  xlab("Amino acid substitutions in ORF8") +
+  ylab("Average Ct") +
+  facet_grid(~ spike_614, margins=TRUE, labeller = labeller(spike_614=spike.labs ))
+ct_ORF8
+
+reg_subs_ORF8 <- glm(avg_ct ~ ORF8 + ORF8.nt + post_symp + week + primers, data = df[df$spike_614 == "D" & df$nt_muts < 20,])
+summary(reg_subs_ORF8)
+```
+
+```{r}
+ct_N <- df %>%
+  ggplot(aes(x = N, y = avg_ct)) +
+  geom_jitter(aes(color=spike_614, fill=spike_614), height=0, alpha=0.4) +
+  scale_fill_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  scale_color_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  geom_smooth(method="lm", col = "black", size=0.4) +
+  theme_minimal() +
+  
+  theme(legend.position = "none") +
+  xlab("Amino acid substitutions in N") +
+  ylab("Average Ct") +
+  facet_grid(~ spike_614, margins=TRUE, labeller = labeller(spike_614=spike.labs ))
+ct_N
+
+reg_subs_N <- glm(avg_ct ~ N + N.nt + post_symp + week + primers, data = df[df$spike_614 == "D" & df$nt_muts < 20,])
+summary(reg_subs_N)
+```
+
+```{r}
+ct_ORF9b <- df %>%
+  ggplot(aes(x = ORF9b, y = avg_ct)) +
+  geom_jitter(aes(color=spike_614, fill=spike_614), height=0, alpha=0.4) +
+  scale_fill_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  scale_color_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  geom_smooth(method="lm", col = "black", size=0.4) +
+  theme_minimal() +
+  
+  theme(legend.position = "none") +
+  xlab("Amino acid substitutions in ORF9b") +
+  ylab("Average Ct") +
+  facet_grid(~ spike_614, margins=TRUE, labeller = labeller(spike_614=spike.labs ))
+ct_ORF9b
+
+reg_subs_ORF9b <- glm(avg_ct ~ ORF9b + ORF9b.nt + post_symp + week + primers, data = df[df$spike_614 == "D" & df$nt_muts < 20,])
+summary(reg_subs_ORF9b)
+```
+
+```{r}
+ct_ORF10 <- df %>%
+  ggplot(aes(x = ORF10, y = avg_ct)) +
+  geom_jitter(aes(color=spike_614, fill=spike_614), height=0, alpha=0.4) +
+  scale_fill_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  scale_color_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  geom_smooth(method="lm", col = "black", size=0.4) +
+  theme_minimal() +
+  
+  theme(legend.position = "none") +
+  xlab("Amino acid substitutions in ORF10") +
+  ylab("Average Ct") +
+  facet_grid(~ spike_614, margins=TRUE, labeller = labeller(spike_614=spike.labs ))
+ct_ORF10
+
+reg_subs_ORF10 <- glm(avg_ct ~ ORF10 + ORF10.nt + post_symp + week + primers, data = df[df$spike_614 == "D" & df$nt_muts < 20,])
+summary(reg_subs_ORF10)
+```
+
+```{r}
+ct_ORF14 <- df %>%
+  ggplot(aes(x = ORF14, y = avg_ct)) +
+  geom_jitter(aes(color=spike_614, fill=spike_614), height=0, alpha=0.4) +
+  scale_fill_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  scale_color_manual(values=c('#0072B2', '#D55E00', '#268457', name = "Spike variant")) +
+  geom_smooth(method="lm", col = "black", size=0.4) +
+  theme_minimal() +
+  
+  theme(legend.position = "none") +
+  xlab("Amino acid substitutions in ORF14") +
+  ylab("Average Ct") +
+  facet_grid(~ spike_614, margins=TRUE, labeller = labeller(spike_614=spike.labs ))
+ct_ORF14
+
+reg_subs_ORF14 <- glm(avg_ct ~ ORF14 + ORF14.nt + post_symp + week + primers, data = df[df$spike_614 == "D" & df$nt_muts < 20,])
+summary(reg_subs_ORF14)
+```
 
 
 ### CLINICAL ANALYSIS
 ```{r}
 summary(df[!is.na(df$deceased), ])
 ```
+```{r}
+summary(df[!is.na(df$deceased) & df$primers == "N1, N2", ])
+```
+
+```{r}
+summary(df[!is.na(df$deceased) & df$primers == "ORF1ab", ])
+```
 
 #### How are the clades spread over time for clinical samples?
 ```{r, echo=FALSE}
-clade_time_uwmed <- df %>%
+spike_614_time_uwmed <- df %>%
   filter(!is.na(deceased)) %>%
-  ggplot(aes(x=date, color=clade, fill=clade)) + 
+  ggplot(aes(x=date, color=spike_614, fill=spike_614)) + 
   geom_bar(position = position_stack()) + 
-  scale_fill_manual(values=c('#0072B2', '#D55E00')) +
-  scale_color_manual(values=c('#0072B2', '#D55E00')) +
+  scale_fill_manual(values=c('#0072B2', '#D55E00'), name = "Spike variant", labels = c("614D", "614G")) +
+  scale_color_manual(values=c('#0072B2', '#D55E00'), name = "Spike variant", labels = c("614D", "614G")) +
   theme_minimal() +
   ylab("Count") +
   xlab("Date") +
-  labs(subtitle = "Samples from patients in UW Medicine System") +
-  facet_grid(primers ~ ., margins = TRUE)
-clade_time_uwmed
+  labs(subtitle = "UW Virology: clinical records available") +
+  facet_grid(primers ~ .)
+spike_614_time_uwmed
 ```
 
 #### Is Ct of UW Med affiliated patients different than Ct of other UW Virology patients?
@@ -531,7 +1099,7 @@ median(df_uw$avg_ct[df_uw$uw == "UW affiliated" & df_uw$primers == "N1, N2"])
 ```{r}
 df_uw %>%
   filter(uw == "Other healthcare network" & primers == "N1, N2") %>%
-  wilcox.test(avg_ct ~ clade, data = .)
+  wilcox.test(avg_ct ~ spike_614, data = .)
 ```
 ```{r}
 dotplot_ct_system <- df_uw %>%
@@ -546,24 +1114,24 @@ dotplot_ct_system <- df_uw %>%
 dotplot_ct_system
 ```
 
-#### Is Ct different across clade in UW Med affiliated patients?
+#### Is Ct different across spike_614 in UW Med affiliated patients?
 ```{r}
 df %>%
   filter(!is.na(deceased) & primers == "N1, N2") %>%
-  {t.test(.$avg_ct ~ .$clade)}
+  {t.test(.$avg_ct ~ .$spike_614)}
 
 df %>%
   filter(!is.na(deceased) & primers == "N1, N2") %>%
-wilcox.test(formula = avg_ct ~ clade, data = ., alternative = "two.sided")
+wilcox.test(formula = avg_ct ~ spike_614, data = ., alternative = "two.sided")
 
-median(df$avg_ct[!is.na(df$deceased) & df$primers == "N1, N2" & df$clade == "D"])
-median(df$avg_ct[!is.na(df$deceased) & df$primers == "N1, N2" & df$clade == "G"])
+median(df$avg_ct[!is.na(df$deceased) & df$primers == "N1, N2" & df$spike_614 == "D"])
+median(df$avg_ct[!is.na(df$deceased) & df$primers == "N1, N2" & df$spike_614 == "G"])
 ```
 ```{r}
 dotplot_ct_uwmed <- df %>%
   filter(!is.na(deceased) & primers == "N1, N2") %>%
-  ggplot(mapping = aes(x=clade, y=avg_ct)) + 
-  geom_dotplot(binaxis="y", stackdir="center", dotsize = 1, binwidth = 0.5, aes(color=clade, fill=clade)) +
+  ggplot(mapping = aes(x=spike_614, y=avg_ct)) + 
+  geom_dotplot(binaxis="y", stackdir="center", dotsize = 1, binwidth = 0.5, aes(color=spike_614, fill=spike_614)) +
   geom_boxplot(alpha=0, size=0.3) +
   scale_fill_manual(name = "Clade", values=c('#0072B2', '#D55E00')) +
   scale_color_manual(name = "Clade",values=c('#0072B2', '#D55E00')) +
@@ -582,8 +1150,8 @@ dotplot_ct_uwmed
 ```{r, fig.width=5}
 primer_ct_clinic <- df %>%
   filter(source == "UW" & !is.na(deceased)) %>%
-  ggplot(mapping = aes(x=clade, y=avg_ct)) + 
-  geom_dotplot(binaxis="y", stackdir="center", dotsize = 0.6, binwidth = 0.5, aes(color=clade, fill=clade)) +
+  ggplot(mapping = aes(x=spike_614, y=avg_ct)) + 
+  geom_dotplot(binaxis="y", stackdir="center", dotsize = 0.6, binwidth = 0.5, aes(color=spike_614, fill=spike_614)) +
   geom_boxplot(alpha=0, size=0.3) +
   scale_fill_manual(name = "Clade", labels = c("614D", "614G"), values=c('#0072B2', '#D55E00')) +
   scale_color_manual(name = "Clade", labels = c("614D", "614G"), values=c('#0072B2', '#D55E00')) +
@@ -605,18 +1173,18 @@ primer_ct_clinic
 t.test(df_uw$bin_age ~ df_uw$uw)
 ```
 
-#### Is their a difference in age by clade in UW Medicine affiliated patients?
+#### Is their a difference in age by spike_614 in UW Medicine affiliated patients?
 ```{r}
 df %>%
   filter(!is.na(deceased)) %>%
-  {t.test(.$bin_age ~ .$clade)}
+  {t.test(.$bin_age ~ .$spike_614)}
 ```
 ```{r, fig.width=4, fig.height=4}
 dotplot_age_uwmed <- df %>%
   filter(!is.na(deceased)) %>%
   drop_na(bin_age, age_bin) %>%
-  ggplot(mapping = aes(x=clade, y=bin_age), na.rm=TRUE) + 
-  geom_dotplot(aes( color=clade, fill=clade), binaxis="y", stackdir="center", stackratio = 0.8, dotsize =0.8, position = position_jitter(width = 0, height=4)) + 
+  ggplot(mapping = aes(x=spike_614, y=bin_age), na.rm=TRUE) + 
+  geom_dotplot(aes( color=spike_614, fill=spike_614), binaxis="y", stackdir="center", stackratio = 0.8, dotsize =0.8, position = position_jitter(width = 0, height=4)) + 
   scale_fill_manual(name = "Clade", values=c('#0072B2', '#D55E00')) +
   scale_color_manual(name = "Clade", values=c('#0072B2', '#D55E00')) +
   theme_minimal() +
@@ -641,7 +1209,7 @@ df %>%
 df%>%
   filter(!is.na(deceased) & primers == "N1, N2") %>%
   ggplot(aes(x = bin_age, y = avg_ct)) +
-  geom_point(aes(color=clade, fill=clade)) +
+  geom_point(aes(color=spike_614, fill=spike_614)) +
   geom_smooth(colour = "black", size=0.5, method = "lm")
 
 df %>%
@@ -667,7 +1235,7 @@ df %>%
 
 #### Linear model of Ct in patients affiliated with UW Medicine
 ```{r}
-lreg_ct_uwmed_n1n2 = glm(avg_ct ~ clade + sex + bin_age + week + immunocompromised_cancer + site + severe, data = df[!is.na(df$deceased) & df$primers == "N1, N2", ])
+lreg_ct_uwmed_n1n2 = glm(avg_ct ~ spike_614 + sex + bin_age + immunocompromised_cancer + site + severe, data = df[!is.na(df$deceased) & df$primers == "N1, N2", ])
 
 summary(lreg_ct_uwmed_n1n2)
 
@@ -704,9 +1272,9 @@ table_clinical
 
 
 ```{r}
-lreg_ct_uwmed = glm(avg_ct ~ clade + sex + week + severe + bin_age + site + immunocompromised_cancer, data = df[!is.na(df$deceased) & df$primers == "ORF1ab", ])
+lreg_ct_uwmed = glm(avg_ct ~ spike_614 + sex + bin_age + immunocompromised_cancer + site + severe, data = df[!is.na(df$deceased) & df$primers == "ORF1ab", ])
 
-#lreg_ct_uwmed = glm(avg_ct ~ clade + sex + week + severe + primers + site, data = df[!is.na(df$deceased), ])
+#lreg_ct_uwmed = glm(avg_ct ~ spike_614 + sex + week + severe + primers + site, data = df[!is.na(df$deceased), ])
 
 summary(lreg_ct_uwmed)
 
@@ -728,37 +1296,38 @@ p2_ct_uwmed <- df %>%
                 args = list(mean = 0, sd = sd(df$ residuals_ct_uwmed[!is.na(df$residuals_ct_uwmed)])))
 
 gridExtra::grid.arrange(p1_ct_uwmed, p2_ct_uwmed, ncol=2)
+
 ```
 Again, residuals are not normally distributed, so this glm is not a good model with these primers.
 
 
-#### Is their a difference in sex by clade?
+#### Is their a difference in sex by spike_614?
 ```{r, echo=FALSE}
-table(df$sex, df$clade)
-chisq.test(df$sex, df$clade)
+table(df$sex, df$spike_614)
+chisq.test(df$sex, df$spike_614)
 ```
 
-#### Is there a difference in immunocompromised/cancer by clade?
+#### Is there a difference in immunocompromised/cancer by spike_614?
 ```{r, echo=FALSE}
-table(df$immunocompromised_cancer, df$clade)
-chisq.test(df$immunocompromised_cancer, df$clade)
+table(df$immunocompromised_cancer, df$spike_614)
+chisq.test(df$immunocompromised_cancer, df$spike_614)
 ```
 
-#### Is there a difference in inpatient vs. outpatient across clade?
+#### Is there a difference in inpatient vs. outpatient across spike_614?
 ```{r}
-table(df$site, df$clade)
-chisq.test(df$site, df$clade)
+table(df$site, df$spike_614)
+chisq.test(df$site, df$spike_614)
 ```
 
-#### Is there a difference in proportion of deceased or required ICU care across clade?
+#### Is there a difference in proportion of deceased or required ICU care across spike_614?
 ```{r}
-table(df$severe, df$clade)
-chisq.test(df$severe, df$clade)
+table(df$severe, df$spike_614)
+chisq.test(df$severe, df$spike_614)
 ```
 
 ### GLM of inpatient
 ```{r}
-lreg_site = glm(site ~ clade + sex + decade_age + immunocompromised_cancer + week + avg_ct, data = df[!is.na(df$deceased), ], family = "binomial")
+lreg_site = glm(site ~ spike_614 + sex + decade_age + immunocompromised_cancer + week + avg_ct, data = df[!is.na(df$deceased), ], family = "binomial")
 summary(lreg_site)
 
 p.adjust(summary(lreg_site)$coefficients[2:7,4], method = "bonferroni", n=6)
@@ -810,7 +1379,7 @@ plot_or <- or %>%
   xlab("") +
   ylab("Odds Ratio for hospitalization") +
   theme(legend.position = "none") +
-  scale_x_discrete(labels = c("cladeG" = "614G", "decade_age" = "Decade\nincrease in age",  "avg_ct" = "Average Ct", "week" = "Week since start\nof epidemic", "sexM" = "Male", "immunocompromised_canceryes" = "Active cancer or\nimmunocompromised")) +
+  scale_x_discrete(labels = c("spike_614G" = "614G", "decade_age" = "Decade\nincrease in age",  "avg_ct" = "Average Ct", "post_symp" = "Days since\nsymptom onset", "week" = "Week since start\nof epidemic", "sexM" = "Male", "immunocompromised_canceryes" = "Active cancer or\nimmunocompromised")) +
   geom_text(vjust = 0, aes(label = c("", "", "***", "", "", "*")), size=5)
 plot_or
   
@@ -823,12 +1392,12 @@ plotdf<- df %>%
   mutate(female = ifelse(sex == "F", "yes", "no")) %>%
   mutate(inpatient = ifelse(site == "inpatient", "yes", "no")) %>%
   pivot_longer(cols = c(female, immunocompromised_cancer, inpatient, severe), names_to = "variable") %>%
-  select(date, clade, variable, value) %>%
+  select(date, spike_614, variable, value) %>%
   filter(!is.na(variable)) %>%
-  mutate(color = ifelse(clade == "D" & value == "yes", "yes.d", NA)) %>%
-  mutate(color = replace(color, clade == "D" & value == "no", "no.d")) %>%
-  mutate(color = replace(color, clade == "G" & value == "yes", "yes.g")) %>%
-  mutate(color = replace(color, clade == "G" & value == "no", "no.g"))
+  mutate(color = ifelse(spike_614 == "D" & value == "yes", "yes.d", NA)) %>%
+  mutate(color = replace(color, spike_614 == "D" & value == "no", "no.d")) %>%
+  mutate(color = replace(color, spike_614 == "G" & value == "yes", "yes.g")) %>%
+  mutate(color = replace(color, spike_614 == "G" & value == "no", "no.g"))
 
 # New facet label names for variable
 var.labs <- c("Female", "Immuncompromised \nor active cancer", "Inpatient", "Critical care \n or deceased")
@@ -845,11 +1414,11 @@ proportions_date <- ggplot(plotdf, aes(x=date)) +
   xlab("Date") +
   theme(axis.text.x = element_text(angle = 30, hjust = 1),
         legend.position = "none") +
-  facet_grid(clade ~ variable, labeller = labeller(variable = var.labs))
+  facet_grid(spike_614 ~ variable, labeller = labeller(variable = var.labs))
 proportions_date
 ```
 
-Plot proportion by clade
+Plot proportion by spike_614
 ```{r}
 stdErr <- function(x, na.rm=FALSE) {
   if (na.rm) x <- na.omit(x)
@@ -858,23 +1427,23 @@ stdErr <- function(x, na.rm=FALSE) {
 ```
 
 ```{r}
-plot_clade <- df %>%
+plot_spike_614 <- df %>%
   filter(!is.na(deceased) & !is.na(severe)) %>%
   mutate(female = ifelse(sex == "F", "yes", "no")) %>%
   mutate(inpatient = ifelse(site == "inpatient", "yes", "no")) %>%
   pivot_longer(cols = c(female, immunocompromised_cancer, inpatient, severe), names_to = "variable") %>%
-  mutate(binary_clade = ifelse(clade == "D", 1, 0)) %>%
-  select(clade, variable, value, binary_clade)
+  mutate(binary_spike_614 = ifelse(spike_614 == "D", 1, 0)) %>%
+  select(spike_614, variable, value, binary_spike_614)
 
-plot_clade
+plot_spike_614
 
-stderr <- plot_clade %>%
+stderr <- plot_spike_614 %>%
   dplyr::group_by(variable, value) %>%
-  summarise(stderr = stdErr(binary_clade))
+  summarise(stderr = stdErr(binary_spike_614))
 
-errorbars <- plot_clade %>%
+errorbars <- plot_spike_614 %>%
   dplyr::group_by(variable, value) %>%
-  summarise(mean = mean(binary_clade))%>%
+  summarise(mean = mean(binary_spike_614))%>%
   left_join(stderr) %>%
   mutate(lower = mean - (1.96*stderr)) %>%
   mutate(upper = mean + (1.96*stderr))
@@ -885,26 +1454,26 @@ errorbars
 var.labs <- c("Female?", "Immunocomp.\nor\nactive cancer?", "Hospitalized?", "Critical care \n or deceased?")
 names(var.labs) <- c("female", "immunocompromised_cancer", "inpatient", "severe")
 
-proportion_clade <- plot_clade %>%
-  mutate(clade = factor(clade, levels = c("G", "D"))) %>%
+proportion_spike_614 <- plot_spike_614 %>%
+  mutate(spike_614 = factor(spike_614, levels = c("G", "D"))) %>%
   mutate(value = factor(value, levels = c("yes", "no"))) %>%
   ggplot(aes(x=value)) +
-  geom_bar(position = "fill", aes(fill = clade, color = clade)) +
+  geom_bar(position = "fill", aes(fill = spike_614, color = spike_614)) +
   geom_errorbar(data = errorbars, aes(x=value, ymin = lower, ymax = upper), width = 0.5) +
-  scale_fill_manual(name = "Clade", labels = c("614G", "614D"), values=c('#D55E00', '#0072B2')) +
-  scale_color_manual(name = "Clade", labels = c("614G", "614D"), values=c('#D55E00', '#0072B2')) +
+  scale_fill_manual(name = "Spike variant", labels = c("614G", "614D"), values=c('#D55E00', '#0072B2')) +
+  scale_color_manual(name = "Spike variant", labels = c("614G", "614D"), values=c('#D55E00', '#0072B2')) +
   theme_minimal() +
   ylab("Proportion") +
   xlab("") +
-  theme(legend.position = c(0.72, 1.05),
+  theme(legend.position = c(0.6, 1.05),
         legend.direction = "horizontal") +
   facet_wrap(~variable, labeller = labeller(variable = var.labs), strip.position = "bottom", nrow=1) +
   theme(strip.placement = "outside", panel.spacing = unit(0.05, "lines"))
-proportion_clade
+proportion_spike_614
 ```
 ```{r, fig.height=6, fig.width=8.5}
 fig_p1 <- ggarrange(dotplot_ct, plot_or, labels = c("A", "C"), nrow=2, ncol=1, font.label = list(size = 20, color = "black", face = "plain", family = NULL), heights=c(1.4,1))
-fig_p2 <- ggarrange(table, proportion_clade, labels = c("B", "D"),nrow=2, heights=c(1,1.5), font.label = list(size = 20, color = "black", face = "plain", family = NULL), vjust=c(1.5,0))
+fig_p2 <- ggarrange(table, proportion_spike_614, labels = c("B", "D"),nrow=2, heights=c(1,1.5), font.label = list(size = 20, color = "black", face = "plain", family = NULL), vjust=c(1.5,0))
 figure <- ggarrange(fig_p1, fig_p2, ncol=2, nrow=1, widths=c(1.1, 1))
 figure
 ```
@@ -916,10 +1485,34 @@ figure_supplemental
 ```
 
 ```{r, fig.height=3, fig.width=8}
-figure_supplemental_2 <- ggarrange(orf1_ct, table_orf1, ncol=1, nrow=2, labels=c("A","B"), heights = c(1.5,1), font.label = list(size = 18, color = "black", face = "plain", family = NULL))
+glms <- ggarrange(table_orf1, table_scan, ncol=1, nrow=2, labels=c("B","C"), font.label = list(size = 18, color = "black", face = "plain", family = NULL), hjust = c(0, 0))
 
-annotated <- annotate_figure(figure_supplemental_2,
-               top = text_grob("UW Virology: ORF1ab primers", face = "bold", size = 13))
+figure_supplemental_2 <- ggarrange(orf1_ct, glms, ncol=2, nrow=1, labels=c("A",""), font.label = list(size = 18, color = "black", face = "plain", family = NULL))
 
-annotated
+figure_supplemental_2
 ```
+
+
+```{r}
+supplemental_primers <- ggarrange(spike_614_UW_primers, spike_614_time_uwmed, ncol=2, nrow=1, labels=c("A", "B"), font.label = list(size = 18, color = "black", face = "plain", family = NULL), widths = c(1, 1.5))
+
+supplemental_primers
+```
+
+```{r}
+subs_plots <- ggarrange(syn_subs_ct, aa_subs_ct, ncol=1, nrow=2, labels=c("A", "B"), font.label = list(size = 18, color = "black", face = "plain", family = NULL))
+
+subs_glm <- ggarrange(table_dsubs_reg, table_gsubs_reg, ncol=2, nrow=1, labels=c("C","D"), font.label = list(size = 18, color = "black", face = "plain", family = NULL))
+
+supplemental_subs_ct <- ggarrange(subs_plots, subs_glm, ncol=1, nrow=2)
+supplemental_subs_ct
+```
+
+```{r}
+symp_onset_plots <- ggarrange(ct_sympon, sympon_time, ncol=1, nrow=2, labels=c("A", "B"), font.label = list(size = 18, color = "black", face = "plain", family = NULL))
+
+supplement_sympon <- ggarrange(symp_onset_plots, ct_time, ncol=2, nrow=1, widths = c(1,1.2), labels = c("", "C"), font.label = list(size = 18, color = "black", face = "plain", family = NULL), common.legend = TRUE, legend="bottom")
+
+supplement_sympon
+```
+

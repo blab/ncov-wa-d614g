@@ -1,7 +1,7 @@
 ---
 title: "Prepping WA data D614G analysis"
 author: "Cassia Wagner"
-date: "August 18, 2020"
+date: "December 21, 2020"
 output: html_document
 ---
 ```{r setup, include=FALSE}
@@ -21,6 +21,9 @@ late_uw_df <- read_tsv(file = '../data/df_uw_new_20200811.tsv')
 clinical_late <- read_tsv(file = '../data/uw_chartreview_20200811.tsv')
 symptoms_df <- read_tsv(file = '../data/sfs_symptoms_2020-05-26.tsv')
 wadoh_df <- read_tsv(file='../results/df_wadoh_2020-07-10.tsv')
+symp_onset_df <- read_tsv(file='../data/symptom-onset.tsv')
+metadata_df <- read_tsv(file='../data/phylodynamics-build-metadata.tsv')
+muts_df <- read_tsv(file='../data/subs_and_muts.tsv')
 ```
 
 #### Data prep
@@ -229,6 +232,43 @@ df <- df %>%
   full_join(wadoh_df)
 ```
 
+#### Adding in symptom onset
+```{r}
+df <- df %>%
+  left_join(symp_onset_df, by = "strain") %>%
+  mutate(symptom_onset = coalesce(symptom_onset.x, symptom_onset.y)) %>%
+  select(-symptom_onset.x, -symptom_onset.y)
+```
+
+
+#### Add in clade
+```{r}
+df <- df %>%
+  rename(spike_614 = clade) 
+
+df <- metadata_df %>%
+  select(Strain, Clade) %>%
+  rename(clade = Clade, strain = Strain) %>%
+  right_join(df, by = "strain")
+```
+
+#### Rename UW-379
+According to Pavitra, UW379 is no renamed as UW-1328 on GISID, in order for mutations to merge in properly, I need to rename it.
+```{r}
+df <- df %>%
+  mutate(strain = str_replace(strain, "USA/WA-UW379/2020", "USA/WA-UW-1238/2020"))
+```
+
+
+#### Add in mutations
+```{r}
+muts_df <- muts_df %>%
+  rename(strain = Sequence, aa_muts = AA, nt_muts = Mutations) %>%
+  select(-Date)
+
+df <- df %>%
+  left_join(muts_df, by = "strain")
+```
 
 
 #### Post-merge data cleanup
@@ -294,15 +334,30 @@ How's it looking?
 summary(df)
 ```
 
-For which strains is clade missing?
+For which strains is spike_614 missing?
 ```{r}
-df$strain[is.na(df$clade)] 
+df$strain[is.na(df$spike_614)] 
 ```
 Note: all strains with a missing clade are in ncov/config/exclude.txt, or are filtered out before alignment for other reasons (likely too short a genome?)
+
 ```{r}
 df <- df %>%
-  drop_na(clade) %>%
-  filter(clade != "other")
+  drop_na(spike_614) %>%
+  filter(spike_614 != "other")
+```
+
+For which strain is nt_muts missing?
+```{r}
+df$strain[is.na(df$nt_muts) & df$source == "wadoh"] 
+```
+These were all removed from GISAID because they were found to be control samples from WA DOH. They should be removed from our dataset too.
+```{r}
+df$strain[is.na(df$nt_muts) & df$source == "UW"] 
+```
+
+```{r}
+df <- df %>%
+  filter(!(is.na(df$nt_muts) & df$source == "wadoh"))
 ```
 
 #### Data overview
