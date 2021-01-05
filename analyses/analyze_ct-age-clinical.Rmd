@@ -726,7 +726,7 @@ syn_subs_ct <- df %>%
   theme(legend.position = "none") +
   xlab("Synonymous substitutions") +
   ylab("Average Ct") +
-  facet_grid(~ spike_614,labeller = labeller(spike_614=spike.labs))
+  facet_grid(~ spike_614, margins=TRUE,labeller = labeller(spike_614=spike.labs))
 
 syn_subs_ct
 
@@ -756,9 +756,9 @@ summary(reg_subs_g)
 
 ```{r}
 summary_dsubs_reg <- tibble("Variable" = c("Intercept", "Amino acid\nsubstitutions", "Synonymous\nsubstitutions", "Days after\nsymptom onset", "Week since start\nof WA epidemic", "ORF1ab primers", "Egene, RdRp\nprimers", "WA DOH primers", "SCAN primers"), 
-                       "Coeff. est." = c("21.03", "-0.43", "0.22", "0.12", "0.063", "1.35", "1.42", "2.18", "5.20"), 
-                       "Std. Error" = c("1.13", "0.16", "0.16", "0.034", "0.16", "0.77", "1.39", "0.59", "0.78"),
-                       "p-value" = c("<2e-16***", "0.0057**", "0.16", "0.00036***", "0.70", "0.081", "0.31", "0.00023***", "1.0e-10***"))
+                       "Coeff. est." = c("20.14", "-0.42", "0.22", "0.12", "0.057", "1.39", "1.42", "2.18", "5.20"), 
+                       "Std. Error" = c("0.97", "0.16", "0.16", "0.034", "0.16", "0.77", "1.39", "0.59", "0.79"),
+                       "p-value" = c("<2e-16***", "0.011*", "0.18", "0.00031***", "0.73", "0.073", "0.31", "0.00024***", "1.1e-10***"))
 
 
 table_dsubs_reg<- ggtexttable(summary_dsubs_reg, rows = NULL, 
@@ -771,9 +771,9 @@ table_dsubs_reg
 ```
 ```{r}
 summary_gsubs_reg <- tibble("Variable" = c("Intercept", "Amino acid\nsubstitutions", "Synonymous\nsubstitutions", "Days after\nsymptom onset", "Week since start\nof WA epidemic", "ORF1ab primers", "Egene, RdRp\nprimers", "WA DOH primers", "SCAN primers"), 
-                       "Coeff. est." = c("18.68", "0.031", "0.24", "0.23", "-0.41", "1.92", "4.33", "3.92", "5.21"), 
-                       "Std. Error" = c("1.29", "0.14", "0.16", "0.034", "0.14", "0.49", "3.91", "0.54", "0.96"),
-                       "p-value" = c("<2e-16**", "0.82", "0.12", "5.2e-11***", "0.0041**", "9.5e-05***", "0.27", "1.1e-12***", "7.8e-08***"))
+                       "Coeff. est." = c("18.82", "0.061", "0.20", "0.23", "-0.43", "1.88", "4.33", "3.96", "5.21"), 
+                       "Std. Error" = c("1.09", "0.14", "0.16", "0.034", "0.14", "0.49", "3.91", "0.54", "0.96"),
+                       "p-value" = c("<2e-16**", "0.66", "0.21", "4.0e-11***", "0.0026**", "0.00013***", "0.27", "6.4e-13***", "7.9e-08***"))
 
 
 table_gsubs_reg<- ggtexttable(summary_gsubs_reg, rows = NULL, 
