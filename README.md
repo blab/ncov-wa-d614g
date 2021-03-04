@@ -29,6 +29,6 @@ been more important in shaping the course of the pandemic than changes in the vi
 
 Nicola F. Müller, Cassia Wagner, Chris D. Frazar, Pavitra Roychoudhury, Jover Lee, Louise H. Moncla, Benjamin Pelle, Matthew Richardson, Erica Ryke, Hong Xie, Lasata Shrestha, Amin Addetia, Victoria M. Rachleff, Nicole A. P. Lieberman, Meei-Li Huang, Romesh Gautom, Geoff Melly, Brian Hiatt, Philip Dykema, Amanda Adler, Elisabeth Brandstetter, Peter D. Han 2, Kairsten Fay 1, Misja Ilcisin, Kirsten Lacombe, Thomas R. Sibley, Melissa Truong, Caitlin R. Wolf, Michael Boeckh, Janet A. Englund, Michael Famulare, Barry R. Lutz, Mark J. Rieder, Matthew Thompson, Jeffrey S. Duchin, Lea M. Starita, Helen Y. Chu, Jay Shendure, Keith R. Jerome, Scott Lindquist, Alexander L. Greninger, Deborah A. Nickerson, Trevor Bedford. 2021. Viral genomes reveal patterns of the SARS-CoV-2 outbreak in Washington State. Sci Transl Med. In review.
 
------------------------------------
+-------------------------------------------
 
 All code (files ending in `.py` or `.md`) is licensed under an [MIT License](LICENSE).
