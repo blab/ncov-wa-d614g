@@ -23,7 +23,8 @@ been more important in shaping the course of the pandemic than changes in the vi
 * `data`: Contains TSV of data used for Ct and clinical analyses cleaned of patient identifiers.
 * `analyses`: Contains R markdown files with code for analyses and code to produce the cleaned dataset.
 * `scripts`: Contains python scripts used in assembling the dataset.
-* `figures`: Contains PDFs and JPGs of figures in the dataset.
+* `figures`: Contains PDFs and JPGs of figures generated from the analyses.
+* `additional-analyses`: Contains additional analyses not described in the manuscript.
 
 ## Citation
 
