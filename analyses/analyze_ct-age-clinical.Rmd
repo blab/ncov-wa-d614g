@@ -16,7 +16,7 @@ library(ggpubr)
 ```
 #### Load data:
 ```{r}
-df <- read_tsv("../data/WA_df.tsv", col_types = list("c", "f", "f", "f", "D", "f", "d", "f", "f", "f", "f", "f", "f", "f", "D", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "d"))
+df <- read_tsv("../data/WA_df.tsv", col_types = list("c", "f", "f", "f", "D", "f", "d", "f", "f", "f", "f", "f", "f", "f","i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i", "i"))
 ```
 ```{r}
 summary(df)
@@ -24,10 +24,20 @@ summary(df)
 
 #### Data prep for analysis:
 ```{r}
+df$bin_age[df$age_bin == 'under 10'] <- 9 #better to be conservative
+df$bin_age[df$age_bin == '10-19'] <- 14.5
+df$bin_age[df$age_bin == '20-29'] <- 24.5
+df$bin_age[df$age_bin == '30-39'] <- 34.5
+df$bin_age[df$age_bin == '40-49'] <- 44.5
+df$bin_age[df$age_bin == '50-59'] <- 54.5
+df$bin_age[df$age_bin == '60-69'] <- 64.5
+df$bin_age[df$age_bin == '70-79'] <- 74.5
+df$bin_age[df$age_bin == '80-89'] <- 84.5
+df$bin_age[df$age_bin == '90+'] <- 91 #Better to be conservative
+
 df <- df %>%
   mutate(severe = ifelse(critical_care == "yes" | deceased == "yes", "yes", "no")) %>%
   mutate(severe = factor(severe)) %>%
-  mutate(post_symp = date - symptom_onset) %>%
   mutate(decade_age = bin_age/10) %>%
   mutate(sequencing = ifelse(source != "UW", "nwgc", "uw")) %>%
   mutate(syn_muts = nt_muts - aa_muts)

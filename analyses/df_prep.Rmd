@@ -308,24 +308,18 @@ df <- df %>%
 ```{r}
 df <- df %>%
   mutate(symptom_onset = replace(symptom_onset, symptom_onset < as.Date("2020-01-31"), NA)) %>%
+  mutate(post_symp = date - symptom_onset) %>%
   mutate(primers = replace(primers, source == "SFS", "scan")) %>%
   mutate(primers = replace(primers, source == "wadoh", "wadoh")) %>%
   mutate(county = replace(county, county == "Unknown", NA))
 
+# Remove symptom onset date
+df <- df %>%
+  select(-symptom_onset)
+
 # Dropping any samples from May on:
 df <- df %>%
   filter(date < as.Date("2020-05-01"))
-
-df$bin_age[df$age_bin == 'under 10'] <- 9 #better to be conservative
-df$bin_age[df$age_bin == '10-19'] <- 14.5
-df$bin_age[df$age_bin == '20-29'] <- 24.5
-df$bin_age[df$age_bin == '30-39'] <- 34.5
-df$bin_age[df$age_bin == '40-49'] <- 44.5
-df$bin_age[df$age_bin == '50-59'] <- 54.5
-df$bin_age[df$age_bin == '60-69'] <- 64.5
-df$bin_age[df$age_bin == '70-79'] <- 74.5
-df$bin_age[df$age_bin == '80-89'] <- 84.5
-df$bin_age[df$age_bin == '90+'] <- 91 #Better to be conservative
 ```
 
 
@@ -360,12 +354,22 @@ df <- df %>%
   filter(!(is.na(df$nt_muts) & df$source == "wadoh"))
 ```
 
+### Make cleaned dataset
+```{r}
+clean <- df %>%
+  select(-post_symp)
+```
+
 #### Data overview
 ```{r}
 summary(df)
+summary(clean)
 ```
 
 Saving dataset for analysis:
 ```{r}
 write_tsv(df, "../data/WA_df.tsv")
+```
+```{r}
+write_tsv(clean, "../data/WA_df_cleaned.tsv")
 ```
